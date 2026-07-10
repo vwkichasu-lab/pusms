@@ -99,13 +99,25 @@ Run a queue worker:
 php artisan queue:work --tries=3
 ```
 
-## Mail
+## Transactional Email and SMS
 
-Local mail defaults to log output. Configure SMTP or an approved mail provider in production:
+PUSMS sends scholarship communication through provider-independent notification services:
+
+- `App\Services\Notifications\Contracts\EmailSender`
+- `App\Services\Notifications\Contracts\SmsSender`
+
+The current production adapters are Laravel SMTP email and Hubtel SMS. Business logic, including the Communication History compose flow, depends on these interfaces instead of provider SDKs directly. Delivery attempts are stored against communication recipients with status, provider, provider message ID where available, attempt result data, and failure reason.
+
+### Email Provider Setup
+
+Configure SMTP or a compatible mail relay in `.env`:
 
 ```dotenv
+PUSMS_EMAIL_PROVIDER=smtp
+PUSMS_EMAIL_TIMEOUT=30
 MAIL_MAILER=smtp
-MAIL_HOST=
+MAIL_SCHEME=tls
+MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USERNAME=
 MAIL_PASSWORD=
@@ -113,17 +125,69 @@ MAIL_FROM_ADDRESS=
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-## Hubtel SMS
+For Gmail, `MAIL_PASSWORD` must be a Gmail app password, not the normal account password. Verify the sender account/domain in the provider dashboard before production use.
 
-Hubtel credentials are environment-based:
+### SMS Provider Setup
+
+PUSMS uses Hubtel through `App\Services\Notifications\Senders\HubtelSmsSender`. Configure:
 
 ```dotenv
+PUSMS_SMS_PROVIDER=hubtel
+PUSMS_SMS_DEFAULT_COUNTRY_CODE=233
+PUSMS_SMS_MAX_LENGTH=918
+PUSMS_SMS_TIMEOUT=30
 HUBTEL_CLIENT_ID=
 HUBTEL_CLIENT_SECRET=
 HUBTEL_SENDER_ID=PUSMS
+HUBTEL_BASE_URL=https://smsc.hubtel.com/v1/messages/send
 ```
 
-Never place provider credentials in source code.
+`PUSMS_SMS_DEFAULT_COUNTRY_CODE` lets local Ghana numbers such as `0244123456` normalize to E.164. For non-Ghana numbers, store the phone number with an explicit country code such as `+234...` or `+1...`.
+
+Never place provider credentials in source code, screenshots, fixtures, or documentation.
+
+### Fake Providers and Safe Test Commands
+
+Automated tests use fake providers or mocked HTTP/Mail, so they do not send real messages. For local fake delivery, set:
+
+```dotenv
+PUSMS_EMAIL_PROVIDER=fake
+PUSMS_SMS_PROVIDER=fake
+```
+
+Development-only test commands are available outside production:
+
+```bash
+php artisan pusms:test-email user@example.com
+php artisan pusms:test-sms +233244123456
+```
+
+Both commands use the same `EmailSender` and `SmsSender` services as the application and are disabled when `APP_ENV=production`.
+
+### Calling the Notification Services
+
+```php
+use App\Services\Notifications\Contracts\EmailSender;
+use App\Services\Notifications\Data\EmailMessage;
+
+app(EmailSender::class)->send(new EmailMessage(
+    to: 'student@example.com',
+    subject: 'Scholarship update',
+    text: 'Your scholarship record is ready.',
+));
+```
+
+```php
+use App\Services\Notifications\Contracts\SmsSender;
+use App\Services\Notifications\Data\SmsMessage;
+
+app(SmsSender::class)->send(new SmsMessage(
+    to: '+233244123456',
+    message: 'Your scholarship record is ready.',
+));
+```
+
+Provider responses are normalized into `NotificationResult`. Validation, configuration, transient provider, and permanent provider failures use domain-specific exceptions under `App\Services\Notifications\Exceptions`.
 
 ## File Storage
 
