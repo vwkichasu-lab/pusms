@@ -10,11 +10,35 @@ class DefaultAdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = env('PUSMS_ADMIN_EMAIL');
-        $password = env('PUSMS_ADMIN_PASSWORD');
+        $this->createUserFromEnvironment(
+            emailKey: 'PUSMS_ADMIN_EMAIL',
+            passwordKey: 'PUSMS_ADMIN_PASSWORD',
+            nameKey: 'PUSMS_ADMIN_NAME',
+            defaultName: 'Super Administrator',
+            role: 'Super Administrator',
+        );
+
+        $this->createUserFromEnvironment(
+            emailKey: 'PUSMS_BETTY_EMAIL',
+            passwordKey: 'PUSMS_BETTY_PASSWORD',
+            nameKey: 'PUSMS_BETTY_NAME',
+            defaultName: 'Betty',
+            role: 'Super Administrator',
+        );
+    }
+
+    private function createUserFromEnvironment(
+        string $emailKey,
+        string $passwordKey,
+        string $nameKey,
+        string $defaultName,
+        string $role,
+    ): void {
+        $email = env($emailKey);
+        $password = env($passwordKey);
 
         if (blank($email) || blank($password)) {
-            $this->command?->warn('Skipped Super Administrator user. Set PUSMS_ADMIN_EMAIL and PUSMS_ADMIN_PASSWORD before running this seeder.');
+            $this->command?->warn("Skipped {$defaultName} user. Set {$emailKey} and {$passwordKey} before running this seeder.");
 
             return;
         }
@@ -22,12 +46,12 @@ class DefaultAdminUserSeeder extends Seeder
         $user = User::updateOrCreate(
             ['email' => $email],
             [
-                'name' => env('PUSMS_ADMIN_NAME', 'Super Administrator'),
+                'name' => env($nameKey, $defaultName),
                 'password' => Hash::make($password),
                 'is_active' => true,
             ],
         );
 
-        $user->assignRole('Super Administrator');
+        $user->syncRoles([$role]);
     }
 }
