@@ -11,6 +11,11 @@ class MyProfile extends EditProfile
 {
     protected static ?string $title = 'My Profile';
 
+    protected function getRedirectUrl(): ?string
+    {
+        return static::getUrl();
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema

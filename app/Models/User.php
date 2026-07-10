@@ -35,7 +35,21 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
 
     public function getFilamentAvatarUrl(): ?string
     {
-        return $this->profile_photo ? Storage::disk('public')->url($this->profile_photo) : null;
+        return $this->profile_photo_url;
+    }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if (! $this->profile_photo || ! Storage::disk('public')->exists($this->profile_photo)) {
+            return null;
+        }
+
+        return '/storage/'.$this->profile_photo;
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->profile_photo_url;
     }
 
     /**
