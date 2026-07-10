@@ -21,15 +21,15 @@ class CommunicationForm
     {
         return $schema
             ->components([
-                Section::make('Message')
-                    ->description('Variables: {{student_name}}, {{student_id}}, {{level}}, {{programme}}.')
+                Section::make('Compose Message')
+                    ->description('Write the email/SMS just like a mail composer. Variables: {{student_name}}, {{student_id}}, {{level}}, {{programme}}, {{scholarship_name}}, {{academic_year}}.')
                     ->schema([
                         Select::make('communication_type')
                             ->required()
                             ->options(['email' => 'Email', 'sms' => 'SMS', 'email_sms' => 'Email and SMS'])
                             ->default('email'),
                         Select::make('metadata.recipient_group')
-                            ->label('Send To')
+                            ->label('To')
                             ->required()
                             ->live()
                             ->options([
@@ -39,6 +39,7 @@ class CommunicationForm
                             ])
                             ->default('students'),
                         TextInput::make('subject')
+                            ->label('Subject')
                             ->maxLength(255)
                             ->required(fn (Get $get): bool => in_array($get('communication_type'), ['email', 'email_sms'], true)),
                         FileUpload::make('attachment_path')
@@ -50,7 +51,12 @@ class CommunicationForm
                             ->downloadable()
                             ->openable()
                             ->columnSpanFull(),
-                        Textarea::make('message')->required()->rows(8)->columnSpanFull(),
+                        Textarea::make('message')
+                            ->label('Message')
+                            ->placeholder('Type your message here...')
+                            ->required()
+                            ->rows(10)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
                 Section::make('Recipient Filters')

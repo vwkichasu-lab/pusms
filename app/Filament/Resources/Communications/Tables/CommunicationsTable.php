@@ -22,6 +22,14 @@ class CommunicationsTable
                 TextColumn::make('communication_type')->badge()->sortable(),
                 TextColumn::make('status')->badge()->sortable(),
                 TextColumn::make('recipients_count')->counts('recipients')->label('Recipients')->sortable(),
+                TextColumn::make('sent_count')
+                    ->label('Sent')
+                    ->state(fn ($record): int => $record->recipients()->where('delivery_status', 'sent')->count())
+                    ->sortable(false),
+                TextColumn::make('failed_count')
+                    ->label('Failed')
+                    ->state(fn ($record): int => $record->recipients()->where('delivery_status', 'failed')->count())
+                    ->sortable(false),
                 TextColumn::make('sent_at')->dateTime()->sortable(),
                 TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -54,7 +62,8 @@ class CommunicationsTable
                         }
 
                         Notification::make()
-                            ->title("Queued {$failed->count()} failed recipient(s) for retry")
+                            ->title("Retried {$failed->count()} failed recipient(s)")
+                            ->body('Refresh the table to see the updated sent and failed counts.')
                             ->success()
                             ->send();
                     }),

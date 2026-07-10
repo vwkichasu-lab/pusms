@@ -21,6 +21,11 @@ class CommunicationService
         foreach ($students as $student) {
             foreach ($this->channels($communication->communication_type) as $channel) {
                 $destination = $channel === 'email' ? $student->email : $student->phone;
+
+                if (! filled($destination)) {
+                    continue;
+                }
+
                 $recipient = $communication->recipients()->create([
                     'student_id' => $student->id,
                     'channel' => $channel,

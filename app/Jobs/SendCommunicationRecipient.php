@@ -8,6 +8,7 @@ use App\Services\TemplateVariableService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class SendCommunicationRecipient implements ShouldQueue
 {
@@ -37,12 +38,21 @@ class SendCommunicationRecipient implements ShouldQueue
 
         try {
             if ($recipient->channel === 'email') {
-                Mail::raw($message, function ($mail) use ($recipient): void {
+                $this->ensureEmailIsConfigured();
+
+                Mail::html(view('emails.communication', [
+                    'communication' => $recipient->communication,
+                    'recipient' => $recipient,
+                    'messageBody' => $message,
+                ])->render(), function ($mail) use ($recipient): void {
                     $mail = $mail->to($recipient->destination)
                         ->subject($recipient->communication->subject ?? 'Pentecost University Scholarship Update');
 
-                    if ($recipient->communication->attachment_path) {
-                        $mail->attach(storage_path('app/public/'.$recipient->communication->attachment_path), [
+                    if (
+                        $recipient->communication->attachment_path &&
+                        Storage::disk('public')->exists($recipient->communication->attachment_path)
+                    ) {
+                        $mail->attach(Storage::disk('public')->path($recipient->communication->attachment_path), [
                             'as' => $recipient->communication->attachment_original_name ?? basename($recipient->communication->attachment_path),
                         ]);
                     }
@@ -69,8 +79,6 @@ class SendCommunicationRecipient implements ShouldQueue
             ]);
 
             $this->refreshCommunicationStatus($recipient);
-
-            throw $exception;
         }
     }
 
@@ -101,5 +109,16 @@ class SendCommunicationRecipient implements ShouldQueue
             },
             'sent_at' => $sent ? now() : $communication->sent_at,
         ]);
+    }
+
+    private function ensureEmailIsConfigured(): void
+    {
+        if (config('mail.default') === 'log') {
+            throw new \RuntimeException('Real email is not configured. Set MAIL_MAILER=smtp and SMTP credentials.');
+        }
+
+        if (config('mail.default') === 'smtp' && blank(config('mail.mailers.smtp.host'))) {
+            throw new \RuntimeException('SMTP host is not configured.');
+        }
     }
 }
