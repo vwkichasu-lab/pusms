@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: pusms
+    runtime: docker
+    plan: free
+    repo: https://github.com/vwkichasu-lab/pusms
+    branch: master
+    envVars:
+      - key: APP_NAME
+        value: Pentecost University Scholarship Management System
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /var/www/html/database/database.sqlite
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: FILESYSTEM_DISK
+        value: public
+      - key: MAIL_MAILER
+        value: log
+      - key: PUSMS_ADMIN_NAME
+        value: Super Administrator
+      - key: PUSMS_ADMIN_EMAIL
+        value: admin@pentvars.edu.gh
+      - key: PUSMS_ADMIN_PASSWORD
+        sync: false
