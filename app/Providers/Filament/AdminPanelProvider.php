@@ -37,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->passwordReset()
             ->profile(MyProfile::class, isSimple: false)
             ->sidebarCollapsibleOnDesktop()
             ->darkMode()
