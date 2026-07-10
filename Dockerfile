@@ -1,4 +1,4 @@
-FROM php:8.3-apache
+FROM php:8.4-apache
 
 WORKDIR /var/www/html
 
@@ -9,12 +9,13 @@ RUN apt-get update \
         libzip-dev \
         libpng-dev \
         libsqlite3-dev \
+        libicu-dev \
         libonig-dev \
         libxml2-dev \
         curl \
         nodejs \
         npm \
-    && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip mbstring exif pcntl bcmath gd \
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip mbstring intl exif pcntl bcmath gd \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
