@@ -8,6 +8,7 @@ RUN apt-get update \
         unzip \
         libzip-dev \
         libpng-dev \
+        libsqlite3-dev \
         libonig-dev \
         libxml2-dev \
         curl \

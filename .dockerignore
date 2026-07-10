@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+.venv
+vendor
+node_modules
+database/database.sqlite
+storage/app/private/livewire-tmp
+storage/app/public/user-profile-photos
+storage/logs/*.log
+public/storage
