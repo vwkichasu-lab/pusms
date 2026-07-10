@@ -16,7 +16,7 @@ RUN apt-get update \
         nodejs \
         npm \
     && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip mbstring intl exif pcntl bcmath gd \
-    && a2dismod mpm_event \
+    && rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* /etc/apache2/mods-enabled/mpm_prefork.* \
     && a2enmod mpm_prefork rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
