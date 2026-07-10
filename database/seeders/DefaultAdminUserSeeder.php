@@ -14,7 +14,9 @@ class DefaultAdminUserSeeder extends Seeder
             emailKey: 'PUSMS_ADMIN_EMAIL',
             passwordKey: 'PUSMS_ADMIN_PASSWORD',
             nameKey: 'PUSMS_ADMIN_NAME',
+            usernameKey: 'PUSMS_ADMIN_USERNAME',
             defaultName: 'Super Administrator',
+            defaultUsername: 'Admin',
             role: 'Super Administrator',
         );
 
@@ -22,7 +24,9 @@ class DefaultAdminUserSeeder extends Seeder
             emailKey: 'PUSMS_BETTY_EMAIL',
             passwordKey: 'PUSMS_BETTY_PASSWORD',
             nameKey: 'PUSMS_BETTY_NAME',
+            usernameKey: 'PUSMS_BETTY_USERNAME',
             defaultName: 'Betty',
+            defaultUsername: 'Betty',
             role: 'Super Administrator',
         );
     }
@@ -31,7 +35,9 @@ class DefaultAdminUserSeeder extends Seeder
         string $emailKey,
         string $passwordKey,
         string $nameKey,
+        string $usernameKey,
         string $defaultName,
+        string $defaultUsername,
         string $role,
     ): void {
         $email = env($emailKey);
@@ -47,6 +53,7 @@ class DefaultAdminUserSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => env($nameKey, $defaultName),
+                'username' => env($usernameKey, $defaultUsername),
                 'password' => Hash::make($password),
                 'is_active' => true,
             ],

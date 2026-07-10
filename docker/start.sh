@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
+if [ -d /data ]; then
+    mkdir -p /data/database /data/storage/app/public
+
+    if [ ! -L /var/www/html/storage/app/public ]; then
+        rm -rf /var/www/html/storage/app/public
+    fi
+
+    ln -sfn /data/storage/app/public /var/www/html/storage/app/public
+    chown -R www-data:www-data /data
+fi
+
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
-    mkdir -p /var/www/html/database
+    mkdir -p "$(dirname "${DB_DATABASE:-/var/www/html/database/database.sqlite}")"
     touch "${DB_DATABASE:-/var/www/html/database/database.sqlite}"
     chown www-data:www-data "${DB_DATABASE:-/var/www/html/database/database.sqlite}"
 fi
