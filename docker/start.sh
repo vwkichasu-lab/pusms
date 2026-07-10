@@ -14,4 +14,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
+rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.*
+if [ ! -e /etc/apache2/mods-enabled/mpm_prefork.load ]; then
+    a2enmod mpm_prefork
+fi
+
 apache2-foreground
