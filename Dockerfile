@@ -16,7 +16,8 @@ RUN apt-get update \
         nodejs \
         npm \
     && docker-php-ext-install pdo pdo_mysql pdo_sqlite zip mbstring intl exif pcntl bcmath gd \
-    && a2enmod rewrite headers \
+    && a2dismod mpm_event \
+    && a2enmod mpm_prefork rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
