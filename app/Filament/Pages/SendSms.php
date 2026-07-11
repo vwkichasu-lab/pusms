@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Communication;
 use App\Models\Programme;
 use App\Models\ScholarshipProgramme;
+use App\Models\Sponsor;
 use App\Models\Student;
 use App\Services\CommunicationService;
 use BackedEnum;
@@ -38,7 +39,9 @@ class SendSms extends Page
      * @var array<string, mixed>
      */
     public array $data = [
+        'recipient_group' => 'students',
         'send_all' => true,
+        'send_all_sponsors' => true,
     ];
 
     public static function canAccess(): bool
@@ -52,8 +55,18 @@ class SendSms extends Page
             ->statePath('data')
             ->components([
                 Section::make('SMS Message')
-                    ->description('SMS is sent through Hubtel to each selected student phone number.')
+                    ->description('SMS is sent through Hubtel to selected students and/or sponsors.')
                     ->schema([
+                        Select::make('recipient_group')
+                            ->label('Send To')
+                            ->options([
+                                'students' => 'Students',
+                                'sponsors' => 'Sponsors',
+                                'students_and_sponsors' => 'Students and Sponsors',
+                            ])
+                            ->default('students')
+                            ->required()
+                            ->live(),
                         Textarea::make('message')
                             ->required()
                             ->rows(6)
@@ -112,18 +125,48 @@ class SendSms extends Page
                             ->columnSpanFull()
                             ->visible(fn (Get $get): bool => ! (bool) $get('send_all')),
                     ])
-                    ->columns(3),
+                    ->columns(3)
+                    ->visible(fn (Get $get): bool => in_array($get('recipient_group'), ['students', 'students_and_sponsors'], true)),
+                Section::make('Sponsors')
+                    ->description('Send to sponsor contact persons using the phone number saved on the sponsor record.')
+                    ->schema([
+                        Toggle::make('send_all_sponsors')
+                            ->label('Send to all sponsors with phone numbers')
+                            ->default(true)
+                            ->live(),
+                        CheckboxList::make('selected_sponsor_ids')
+                            ->label('Select Sponsors')
+                            ->options(fn (Get $get): array => $this->sponsorsForState($get)
+                                ->limit(500)
+                                ->get()
+                                ->mapWithKeys(fn (Sponsor $sponsor): array => [
+                                    $sponsor->id => "{$sponsor->name} | {$sponsor->contact_person} | {$sponsor->phone}",
+                                ])
+                                ->all())
+                            ->searchable()
+                            ->bulkToggleable()
+                            ->columns(1)
+                            ->columnSpanFull()
+                            ->visible(fn (Get $get): bool => ! (bool) $get('send_all_sponsors')),
+                    ])
+                    ->visible(fn (Get $get): bool => in_array($get('recipient_group'), ['sponsors', 'students_and_sponsors'], true)),
             ]);
     }
 
     public function send(CommunicationService $communications): void
     {
         $state = $this->form->getState();
-        $students = $this->studentsForState($state)->get();
+        $recipientGroup = $state['recipient_group'] ?? 'students';
+        $students = in_array($recipientGroup, ['students', 'students_and_sponsors'], true)
+            ? $this->studentsForState($state)->get()
+            : collect();
+        $sponsors = in_array($recipientGroup, ['sponsors', 'students_and_sponsors'], true)
+            ? $this->sponsorsForState($state)->get()
+            : collect();
 
-        if ($students->isEmpty()) {
+        if ($students->isEmpty() && $sponsors->isEmpty()) {
             Notification::make()
-                ->title('No students with phone numbers matched your selection.')
+                ->title('No selected recipients have phone numbers.')
                 ->danger()
                 ->send();
 
@@ -139,22 +182,24 @@ class SendSms extends Page
             'metadata' => [
                 'source_page' => 'send_sms',
                 'student_count' => $students->count(),
+                'sponsor_count' => $sponsors->count(),
             ],
         ]);
 
-        $communications->dispatch($communication, $students);
+        $communications->dispatch($communication, $students, $sponsors);
         $communication->refresh()->load('recipients');
         $sent = $communication->recipients->where('delivery_status', 'sent')->count();
         $failed = $communication->recipients->where('delivery_status', 'failed')->count();
         $queued = $communication->recipients->where('delivery_status', 'queued')->count();
 
         Notification::make()
-            ->title("SMS processed for {$students->count()} student(s)")
+            ->title('SMS processed')
             ->body("Sent: {$sent}. Failed: {$failed}. Queued: {$queued}. Open Message History to see the reason for any failure.")
             ->status($failed > 0 ? 'warning' : 'success')
             ->send();
 
         $this->data['selected_student_ids'] = [];
+        $this->data['selected_sponsor_ids'] = [];
     }
 
     /**
@@ -178,5 +223,23 @@ class SendSms extends Page
                 return $query->whereKey($ids ?: [0]);
             })
             ->orderBy('student_id');
+    }
+
+    /**
+     * @param  array<string, mixed>|Get  $state
+     */
+    private function sponsorsForState(array|Get $state): Builder
+    {
+        $get = fn (string $key): mixed => $state instanceof Get ? $state($key) : ($state[$key] ?? null);
+
+        return Sponsor::query()
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->when(! (bool) $get('send_all_sponsors'), function (Builder $query) use ($get): Builder {
+                $ids = collect($get('selected_sponsor_ids') ?? [])->filter()->all();
+
+                return $query->whereKey($ids ?: [0]);
+            })
+            ->orderBy('name');
     }
 }
