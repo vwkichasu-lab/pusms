@@ -68,7 +68,7 @@ final class HubtelSmsSender implements SmsSender
     {
         foreach (['client_id', 'client_secret', 'sender_id', 'base_url'] as $key) {
             if (blank(config("services.hubtel.{$key}"))) {
-                throw new NotificationConfigurationException("Hubtel {$key} is not configured.", "missing_hubtel_{$key}");
+                throw new NotificationConfigurationException("Hubtel {$key} is not configured. Add the real Hubtel credentials in Railway before SMS can be delivered.", "missing_hubtel_{$key}");
             }
         }
     }

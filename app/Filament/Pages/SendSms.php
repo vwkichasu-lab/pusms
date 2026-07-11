@@ -143,11 +143,15 @@ class SendSms extends Page
         ]);
 
         $communications->dispatch($communication, $students);
+        $communication->refresh()->load('recipients');
+        $sent = $communication->recipients->where('delivery_status', 'sent')->count();
+        $failed = $communication->recipients->where('delivery_status', 'failed')->count();
+        $queued = $communication->recipients->where('delivery_status', 'queued')->count();
 
         Notification::make()
-            ->title("SMS queued for {$students->count()} student(s)")
-            ->body('Delivery status is saved in the database for audit and retry tracking.')
-            ->success()
+            ->title("SMS processed for {$students->count()} student(s)")
+            ->body("Sent: {$sent}. Failed: {$failed}. Queued: {$queued}. Open Message History to see the reason for any failure.")
+            ->status($failed > 0 ? 'warning' : 'success')
             ->send();
 
         $this->data['selected_student_ids'] = [];
