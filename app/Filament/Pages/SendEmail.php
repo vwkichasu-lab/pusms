@@ -23,6 +23,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
@@ -188,6 +189,51 @@ class SendEmail extends Page
         $this->data['selected_sponsor_ids'] = [];
     }
 
+    public function openGmailCompose(): RedirectResponse
+    {
+        $state = $this->form->getState();
+        $recipientGroup = $state['recipient_group'] ?? 'students';
+        $students = in_array($recipientGroup, ['students', 'students_and_sponsors'], true)
+            ? $this->studentsForState($state, 'email')->limit(100)->get()
+            : collect();
+        $sponsors = in_array($recipientGroup, ['sponsors', 'students_and_sponsors'], true)
+            ? $this->sponsorsForState($state, 'email')->limit(100)->get()
+            : collect();
+
+        $emails = $students
+            ->pluck('email')
+            ->merge($sponsors->pluck('email'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($emails->isEmpty()) {
+            Notification::make()
+                ->title('No selected recipients have email addresses.')
+                ->danger()
+                ->send();
+
+            return redirect()->route('filament.admin.pages.send-email');
+        }
+
+        if ($emails->count() > 100) {
+            Notification::make()
+                ->title('Only the first 100 recipients were added to Gmail compose.')
+                ->warning()
+                ->send();
+        }
+
+        $body = $state['message'] ?? '';
+
+        return redirect()->away('https://mail.google.com/mail/?'.http_build_query([
+            'view' => 'cm',
+            'fs' => '1',
+            'bcc' => $emails->implode(','),
+            'su' => $state['subject'] ?? '',
+            'body' => $body,
+        ]));
+    }
+
     private function studentFilterSection(string $channel): Section
     {
         return Section::make('Students')
@@ -228,7 +274,7 @@ class SendEmail extends Page
                     ->live(),
                 CheckboxList::make('selected_student_ids')
                     ->label('Select Students')
-                    ->options(fn (Get $get): array => $this->studentsForState($get, $channel)
+                    ->options(fn (Get $get): array => $this->studentsForState($get, $channel, false)
                         ->limit(500)
                         ->get()
                         ->mapWithKeys(fn (Student $student): array => [
@@ -256,7 +302,7 @@ class SendEmail extends Page
                     ->live(),
                 CheckboxList::make('selected_sponsor_ids')
                     ->label('Select Sponsors')
-                    ->options(fn (Get $get): array => $this->sponsorsForState($get, 'email')
+                    ->options(fn (Get $get): array => $this->sponsorsForState($get, 'email', false)
                         ->limit(500)
                         ->get()
                         ->mapWithKeys(fn (Sponsor $sponsor): array => [
@@ -286,7 +332,7 @@ class SendEmail extends Page
     /**
      * @param  array<string, mixed>|Get  $state
      */
-    private function studentsForState(array|Get $state, string $channel): Builder
+    private function studentsForState(array|Get $state, string $channel, bool $applySelection = true): Builder
     {
         $get = fn (string $key): mixed => $state instanceof Get ? $state($key) : ($state[$key] ?? null);
         $destinationColumn = $channel === 'email' ? 'email' : 'phone';
@@ -299,7 +345,7 @@ class SendEmail extends Page
             ->when($get('alumni_status'), fn (Builder $query, string $status): Builder => $query->where('alumni_status', $status))
             ->when($get('scholarship_type'), fn (Builder $query, string $type): Builder => $query->whereHas('scholarships.scholarshipProgramme', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_type', $type)))
             ->when($get('scholarship_programme_id'), fn (Builder $query, int|string $id): Builder => $query->whereHas('scholarships', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_programme_id', $id)))
-            ->when(! (bool) $get('send_all'), function (Builder $query) use ($get): Builder {
+            ->when($applySelection && ! (bool) $get('send_all'), function (Builder $query) use ($get): Builder {
                 $ids = collect($get('selected_student_ids') ?? [])->filter()->all();
 
                 return $query->whereKey($ids ?: [0]);
@@ -310,7 +356,7 @@ class SendEmail extends Page
     /**
      * @param  array<string, mixed>|Get  $state
      */
-    private function sponsorsForState(array|Get $state, string $channel): Builder
+    private function sponsorsForState(array|Get $state, string $channel, bool $applySelection = true): Builder
     {
         $get = fn (string $key): mixed => $state instanceof Get ? $state($key) : ($state[$key] ?? null);
         $destinationColumn = $channel === 'email' ? 'email' : 'phone';
@@ -318,7 +364,7 @@ class SendEmail extends Page
         return Sponsor::query()
             ->whereNotNull($destinationColumn)
             ->where($destinationColumn, '!=', '')
-            ->when(! (bool) $get('send_all_sponsors'), function (Builder $query) use ($get): Builder {
+            ->when($applySelection && ! (bool) $get('send_all_sponsors'), function (Builder $query) use ($get): Builder {
                 $ids = collect($get('selected_sponsor_ids') ?? [])->filter()->all();
 
                 return $query->whereKey($ids ?: [0]);

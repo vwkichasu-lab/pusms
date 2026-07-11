@@ -62,6 +62,10 @@
                 Send Email
             </x-filament::button>
 
+            <x-filament::button type="button" color="gray" icon="heroicon-m-arrow-top-right-on-square" wire:click="openGmailCompose">
+                Open in Gmail Compose
+            </x-filament::button>
+
             <x-filament::button tag="a" color="gray" href="{{ route('filament.admin.pages.message-history') }}">
                 View Message History
             </x-filament::button>

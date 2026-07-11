@@ -112,7 +112,7 @@ class SendSms extends Page
                             ->live(),
                         CheckboxList::make('selected_student_ids')
                             ->label('Select Students')
-                            ->options(fn (Get $get): array => $this->studentsForState($get)
+                            ->options(fn (Get $get): array => $this->studentsForState($get, false)
                                 ->limit(500)
                                 ->get()
                                 ->mapWithKeys(fn (Student $student): array => [
@@ -136,7 +136,7 @@ class SendSms extends Page
                             ->live(),
                         CheckboxList::make('selected_sponsor_ids')
                             ->label('Select Sponsors')
-                            ->options(fn (Get $get): array => $this->sponsorsForState($get)
+                            ->options(fn (Get $get): array => $this->sponsorsForState($get, false)
                                 ->limit(500)
                                 ->get()
                                 ->mapWithKeys(fn (Sponsor $sponsor): array => [
@@ -205,7 +205,7 @@ class SendSms extends Page
     /**
      * @param  array<string, mixed>|Get  $state
      */
-    private function studentsForState(array|Get $state): Builder
+    private function studentsForState(array|Get $state, bool $applySelection = true): Builder
     {
         $get = fn (string $key): mixed => $state instanceof Get ? $state($key) : ($state[$key] ?? null);
 
@@ -217,7 +217,7 @@ class SendSms extends Page
             ->when($get('alumni_status'), fn (Builder $query, string $status): Builder => $query->where('alumni_status', $status))
             ->when($get('scholarship_type'), fn (Builder $query, string $type): Builder => $query->whereHas('scholarships.scholarshipProgramme', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_type', $type)))
             ->when($get('scholarship_programme_id'), fn (Builder $query, int|string $id): Builder => $query->whereHas('scholarships', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_programme_id', $id)))
-            ->when(! (bool) $get('send_all'), function (Builder $query) use ($get): Builder {
+            ->when($applySelection && ! (bool) $get('send_all'), function (Builder $query) use ($get): Builder {
                 $ids = collect($get('selected_student_ids') ?? [])->filter()->all();
 
                 return $query->whereKey($ids ?: [0]);
@@ -228,14 +228,14 @@ class SendSms extends Page
     /**
      * @param  array<string, mixed>|Get  $state
      */
-    private function sponsorsForState(array|Get $state): Builder
+    private function sponsorsForState(array|Get $state, bool $applySelection = true): Builder
     {
         $get = fn (string $key): mixed => $state instanceof Get ? $state($key) : ($state[$key] ?? null);
 
         return Sponsor::query()
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
-            ->when(! (bool) $get('send_all_sponsors'), function (Builder $query) use ($get): Builder {
+            ->when($applySelection && ! (bool) $get('send_all_sponsors'), function (Builder $query) use ($get): Builder {
                 $ids = collect($get('selected_sponsor_ids') ?? [])->filter()->all();
 
                 return $query->whereKey($ids ?: [0]);
