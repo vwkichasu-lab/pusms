@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\GeneratedScholarshipLetter;
 use App\Models\StudentScholarship;
 use BackedEnum;
 use Filament\Forms\Components\Placeholder;
@@ -12,6 +13,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class ScholarshipLetterGenerator extends Page
@@ -81,6 +83,22 @@ class ScholarshipLetterGenerator extends Page
                 ->send();
 
             return;
+        }
+
+        $award = StudentScholarship::query()->with(['student', 'academicYear', 'scholarshipProgramme'])->find($awardId);
+
+        if ($award) {
+            GeneratedScholarshipLetter::create([
+                'student_scholarship_id' => $award->id,
+                'student_id' => $award->student_id,
+                'generated_by' => Auth::id(),
+                'reference' => 'PU/BA/'.str_pad((string) $award->id, 3, '0', STR_PAD_LEFT).'/'.now()->format('m/y'),
+                'letter_date' => now()->toDateString(),
+                'signatory_name' => 'REV. AUGUSTINE ARTHUR-NORMAN',
+                'signatory_title' => 'SCHOLARSHIP COORDINATOR',
+                'body' => null,
+                'generated_at' => now(),
+            ]);
         }
 
         $this->redirect(route('student-scholarships.letter', ['award' => $awardId]));

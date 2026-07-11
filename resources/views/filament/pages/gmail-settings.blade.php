@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <x-filament::section>
             <x-slot name="heading">Gmail OAuth Connection</x-slot>
-            <x-slot name="description">Administrators connect Gmail securely through Google. PUSMS never stores a Gmail password.</x-slot>
+            <x-slot name="description">Administrators connect Gmail securely through Google. PUSMS never stores a Gmail password. Reconnect once to approve inbox read access for the in-system Inbox page.</x-slot>
 
             <div class="flex flex-wrap gap-3">
                 <x-filament::button tag="a" href="{{ route('gmail.connect') }}" icon="heroicon-m-link">

@@ -1,10 +1,10 @@
 <x-filament-panels::page>
     <x-filament::section>
         <x-slot name="heading">Gmail Sending Account</x-slot>
-        <x-slot name="description">PUSMS sends through the scholarship Gmail server account by default. Connected Gmail is optional for the advanced Gmail API path.</x-slot>
+        <x-slot name="description">PUSMS sends through the connected scholarship Gmail account. Use {{ '{' }}{{ '{' }}name{{ '}' }}{{ '}' }} in the message to personalize each student or sponsor.</x-slot>
 
         @php
-            $gmailAccounts = auth()->user()?->gmailAccounts()->where('status', 'connected')->latest('last_used_at')->latest()->get() ?? collect();
+            $gmailAccounts = \App\Models\GmailAccount::query()->where('status', 'connected')->whereNull('revoked_at')->latest('last_used_at')->latest()->get();
         @endphp
 
         <div class="space-y-4">

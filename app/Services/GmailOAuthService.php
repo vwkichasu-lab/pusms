@@ -24,6 +24,7 @@ class GmailOAuthService
             'email',
             'profile',
             'https://www.googleapis.com/auth/gmail.send',
+            'https://www.googleapis.com/auth/gmail.readonly',
         ];
     }
 
@@ -183,6 +184,59 @@ class GmailOAuthService
             toName: $toName,
             idempotencyKey: 'gmail-test:'.$account->id.':'.now()->timestamp,
         ));
+    }
+
+    /**
+     * @return array{count:int, messages:array<int, array<string, string|null>>, needs_reconnect:bool}
+     */
+    public function inboxPreview(GmailAccount $account, int $limit = 15): array
+    {
+        if (! in_array('https://www.googleapis.com/auth/gmail.readonly', $account->scopes ?? [], true)) {
+            return ['count' => 0, 'messages' => [], 'needs_reconnect' => true];
+        }
+
+        $token = $this->refreshAccessToken($account);
+
+        $list = Http::withToken($token)
+            ->timeout(30)
+            ->get('https://gmail.googleapis.com/gmail/v1/users/me/messages', [
+                'labelIds' => 'INBOX',
+                'maxResults' => $limit,
+                'q' => 'in:inbox',
+            ])
+            ->throw()
+            ->json();
+
+        $messages = collect($list['messages'] ?? [])
+            ->take($limit)
+            ->map(function (array $message) use ($token): array {
+                $detail = Http::withToken($token)
+                    ->timeout(30)
+                    ->get("https://gmail.googleapis.com/gmail/v1/users/me/messages/{$message['id']}", [
+                        'format' => 'metadata',
+                        'metadataHeaders' => ['From', 'Subject', 'Date'],
+                    ])
+                    ->throw()
+                    ->json();
+
+                $headers = collect($detail['payload']['headers'] ?? [])
+                    ->mapWithKeys(fn (array $header): array => [strtolower($header['name'] ?? '') => $header['value'] ?? null]);
+
+                return [
+                    'id' => $message['id'] ?? null,
+                    'from' => $headers['from'] ?? '-',
+                    'subject' => $headers['subject'] ?? '(no subject)',
+                    'date' => $headers['date'] ?? null,
+                    'snippet' => $detail['snippet'] ?? '',
+                ];
+            })
+            ->all();
+
+        return [
+            'count' => (int) ($list['resultSizeEstimate'] ?? count($messages)),
+            'messages' => $messages,
+            'needs_reconnect' => false,
+        ];
     }
 
     public function disconnect(GmailAccount $account): void

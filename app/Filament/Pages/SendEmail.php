@@ -99,6 +99,14 @@ class SendEmail extends Page
                             ->label('Reply-To Email')
                             ->email()
                             ->maxLength(255),
+                        TextInput::make('cc')
+                            ->label('CC')
+                            ->helperText('Optional. Separate multiple external emails with commas.')
+                            ->maxLength(1000),
+                        TextInput::make('bcc')
+                            ->label('BCC')
+                            ->helperText('Optional. Separate multiple external emails with commas.')
+                            ->maxLength(1000),
                         FileUpload::make('attachment_path')
                             ->label('Attachment')
                             ->disk('public')
@@ -110,7 +118,8 @@ class SendEmail extends Page
                         Textarea::make('message')
                             ->required()
                             ->rows(10)
-                            ->placeholder('Dear {{student_name}}, ...')
+                            ->placeholder('Dear {{name}}, ...')
+                            ->helperText('For bulk messages, write Dear {{name}} and PUSMS will replace it with each student or sponsor name.')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -167,6 +176,8 @@ class SendEmail extends Page
                 'source_page' => 'send_email',
                 'delivery_provider' => $deliveryProvider,
                 'reply_to' => $state['reply_to'] ?? null,
+                'cc' => $this->parseEmailList($state['cc'] ?? null),
+                'bcc' => $this->parseEmailList($state['bcc'] ?? null),
                 'student_count' => $students->count(),
                 'sponsor_count' => $sponsors->count(),
             ],
@@ -331,6 +342,19 @@ class SendEmail extends Page
         return GmailAccount::query()
             ->where('status', 'connected')
             ->whereNull('revoked_at');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function parseEmailList(?string $value): array
+    {
+        return collect(preg_split('/[,;\s]+/', (string) $value) ?: [])
+            ->map(fn (string $email): string => trim($email))
+            ->filter(fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

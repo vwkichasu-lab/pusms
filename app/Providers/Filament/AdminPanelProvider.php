@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\DashboardReadiness;
+use App\Filament\Pages\GeneratedLetters;
 use App\Filament\Pages\GmailInbox;
 use App\Filament\Pages\MyProfile;
 use App\Filament\Widgets\PusmsStatsOverview;
@@ -172,8 +173,8 @@ class AdminPanelProvider extends PanelProvider
                         }
 
                         .pusms-topbar-brand img {
-                            width: 52px;
-                            height: 52px;
+                            width: 68px;
+                            height: 68px;
                             object-fit: contain;
                             flex: none;
                         }
@@ -195,6 +196,28 @@ class AdminPanelProvider extends PanelProvider
                         .fi-page,
                         .fi-ta-ctn {
                             max-width: none !important;
+                        }
+
+                        .fi-page > header::after {
+                            content: "";
+                            display: block;
+                            width: min(420px, 80vw);
+                            height: 150px;
+                            margin: .5rem auto 1rem;
+                            background: url('/images/pentvars-3d.png') center / contain no-repeat;
+                        }
+
+                        .fi-sidebar.is-collapsed .fi-sidebar-nav,
+                        .fi-sidebar[aria-expanded="false"] .fi-sidebar-nav {
+                            display: grid !important;
+                            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                            gap: .35rem !important;
+                            padding-inline: .35rem !important;
+                        }
+
+                        .fi-sidebar.is-collapsed .fi-sidebar-item-label,
+                        .fi-sidebar[aria-expanded="false"] .fi-sidebar-item-label {
+                            display: none !important;
                         }
 
                         .fi-ta-content,
@@ -232,8 +255,8 @@ class AdminPanelProvider extends PanelProvider
                             }
 
                             .pusms-topbar-brand img {
-                                width: 34px;
-                                height: 34px;
+                                width: 42px;
+                                height: 42px;
                             }
 
                             .pusms-topbar-brand .pusms-full-name {
@@ -273,6 +296,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                GeneratedLetters::class,
                 GmailInbox::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')

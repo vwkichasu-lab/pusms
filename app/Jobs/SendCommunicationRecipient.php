@@ -39,12 +39,11 @@ class SendCommunicationRecipient implements ShouldQueue
             return;
         }
 
-        $message = $recipient->student
-            ? $templates->render($recipient->communication->message, $recipient->student)
-            : str($recipient->communication->message)
-                ->replace('{{sponsor_name}}', $recipient->sponsor?->name ?? 'Sponsor')
-                ->replace('{{contact_person}}', $recipient->sponsor?->contact_person ?? '')
-                ->toString();
+        $message = $templates->render(
+            $recipient->communication->message,
+            $recipient->student,
+            $recipient->sponsor,
+        );
 
         if ($recipient->communication->attachment_path) {
             $attachmentUrl = asset('storage/'.$recipient->communication->attachment_path);
@@ -66,6 +65,8 @@ class SendCommunicationRecipient implements ShouldQueue
                     html: $html,
                     toName: $recipient->student?->full_name ?? $recipient->sponsor?->contact_person ?? $recipient->sponsor?->name,
                     replyTo: $recipient->communication->metadata['reply_to'] ?? null,
+                    cc: $recipient->communication->metadata['cc'] ?? [],
+                    bcc: $recipient->communication->metadata['bcc'] ?? [],
                     idempotencyKey: $this->idempotencyKey($recipient),
                     attachments: $this->attachments($recipient),
                 );

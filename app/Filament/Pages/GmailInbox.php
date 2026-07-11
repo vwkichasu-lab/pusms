@@ -2,7 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\GmailAccount;
+use App\Services\GmailOAuthService;
 use BackedEnum;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
@@ -20,8 +23,48 @@ class GmailInbox extends Page
 
     protected string $view = 'filament.pages.gmail-inbox';
 
+    public array $inbox = [
+        'count' => 0,
+        'messages' => [],
+        'needs_reconnect' => false,
+        'error' => null,
+    ];
+
     public static function canAccess(): bool
     {
         return Auth::user()?->can('send email') ?? false;
+    }
+
+    public function mount(GmailOAuthService $gmail): void
+    {
+        $this->refreshInbox($gmail);
+    }
+
+    public function refreshInbox(GmailOAuthService $gmail): void
+    {
+        $account = GmailAccount::query()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at')
+            ->latest('last_used_at')
+            ->latest()
+            ->first();
+
+        if (! $account) {
+            $this->inbox = ['count' => 0, 'messages' => [], 'needs_reconnect' => true, 'error' => 'Connect Gmail first.'];
+
+            return;
+        }
+
+        try {
+            $this->inbox = $gmail->inboxPreview($account) + ['error' => null];
+        } catch (\Throwable $exception) {
+            $this->inbox = ['count' => 0, 'messages' => [], 'needs_reconnect' => true, 'error' => $exception->getMessage()];
+
+            Notification::make()
+                ->title('Inbox needs Gmail reconnect')
+                ->body('Reconnect Gmail and approve the new read permission.')
+                ->warning()
+                ->send();
+        }
     }
 }

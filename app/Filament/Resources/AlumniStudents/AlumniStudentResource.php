@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AlumniStudents;
 
+use App\Filament\Resources\AlumniStudents\Pages\CreateAlumniStudent;
 use App\Filament\Resources\AlumniStudents\Pages\EditAlumniStudent;
 use App\Filament\Resources\AlumniStudents\Pages\ListAlumniStudents;
 use App\Filament\Resources\Students\Schemas\StudentForm;
@@ -50,6 +51,7 @@ class AlumniStudentResource extends Resource
     {
         return [
             'index' => ListAlumniStudents::route('/'),
+            'create' => CreateAlumniStudent::route('/create'),
             'edit' => EditAlumniStudent::route('/{record}/edit'),
         ];
     }

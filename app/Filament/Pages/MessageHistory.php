@@ -27,6 +27,8 @@ class MessageHistory extends Page
      */
     public array $selectedMessages = [];
 
+    public ?int $expandedMessageId = null;
+
     public static function canAccess(): bool
     {
         return Auth::user()?->can('use email and sms pages') ?? false;
@@ -93,5 +95,10 @@ class MessageHistory extends Page
             ->title('Selected message history deleted')
             ->success()
             ->send();
+    }
+
+    public function toggleMessage(int $messageId): void
+    {
+        $this->expandedMessageId = $this->expandedMessageId === $messageId ? null : $messageId;
     }
 }

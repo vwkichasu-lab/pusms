@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    <div class="space-y-6">
+    <div class="space-y-4">
         @if ($this->messages)
             <div style="display:flex; justify-content:flex-end;">
                 <button
@@ -13,93 +13,99 @@
             </div>
         @endif
 
-        @forelse ($this->messages as $message)
-            @php
-                $sent = $message->recipients->where('delivery_status', 'sent')->count();
-                $failed = $message->recipients->where('delivery_status', 'failed')->count();
-                $queued = $message->recipients->where('delivery_status', 'queued')->count();
-            @endphp
-
-            <x-filament::section>
-                <x-slot name="heading">
-                    {{ $message->communication_type === 'sms' ? 'SMS' : 'Email' }} - {{ $message->subject ?: 'No subject' }}
-                </x-slot>
-
-                <x-slot name="description">
-                    Status: {{ str($message->status)->headline() }}
-                    | Sender: {{ $message->gmailAccount?->email ?? (($message->metadata['delivery_provider'] ?? null) === 'smtp' ? 'System SMTP' : 'System Email') }}
-                    | Sent: {{ $sent }}
-                    | Failed: {{ $failed }}
-                    | Queued: {{ $queued }}
-                    | Created: {{ $message->created_at?->format('M j, Y g:i A') }}
-                </x-slot>
-
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px;">
-                    <label style="display:flex; align-items:center; gap:8px; font-weight:700;">
-                        <input type="checkbox" wire:model.live="selectedMessages.{{ $message->id }}">
-                        Select this message
-                    </label>
-
-                    <button
-                        type="button"
-                        wire:click="deleteMessage({{ $message->id }})"
-                        wire:confirm="Delete this message history record?"
-                        style="background:#fff; color:#b91c1c; border:1px solid #b91c1c; border-radius:8px; padding:8px 12px; font-weight:700;"
-                    >
-                        Delete
-                    </button>
-                </div>
-
-                <div style="border:1px solid #cbd5e1; margin-bottom:12px; padding:12px; background:#fff;">
-                    <strong>Message</strong>
-                    <div style="margin-top:6px; white-space:pre-wrap;">{{ $message->message }}</div>
-                </div>
-
-                <div style="overflow-x:auto;">
-                    <table style="width:100%; min-width:980px; border-collapse:collapse;">
-                        <thead>
-                        <tr>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Student / Recipient</th>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Channel</th>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Destination</th>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Status</th>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Provider ID</th>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Sent / Failed At</th>
-                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Failure Reason</th>
+        <x-filament::section>
+            <div style="overflow:auto;">
+                <table style="width:100%; min-width:1100px; border-collapse:collapse;">
+                    <thead>
+                    <tr>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left; width:44px;"></th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Type</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Subject</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Preview</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Recipients</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Status</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Sent</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Failed</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Date</th>
+                        <th style="border-bottom:1px solid #cbd5e1; padding:10px; text-align:left;">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @forelse ($this->messages as $message)
+                        @php
+                            $sent = $message->recipients->where('delivery_status', 'sent')->count();
+                            $failed = $message->recipients->where('delivery_status', 'failed')->count();
+                            $total = $message->recipients->count();
+                        @endphp
+                        <tr wire:click="toggleMessage({{ $message->id }})" style="cursor:pointer; background:{{ $this->expandedMessageId === $message->id ? '#eff6ff' : '#fff' }};">
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;" wire:click.stop>
+                                <input type="checkbox" wire:model.live="selectedMessages.{{ $message->id }}">
+                            </td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ strtoupper($message->communication_type) }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px; font-weight:800;">{{ $message->subject ?: 'No subject' }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ str($message->message)->squish()->limit(90) }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ $total }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ str($message->status)->headline() }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ $sent }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ $failed }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;">{{ $message->created_at?->format('M j, Y g:i A') }}</td>
+                            <td style="border-bottom:1px solid #e2e8f0; padding:10px;" wire:click.stop>
+                                <button
+                                    type="button"
+                                    wire:click="deleteMessage({{ $message->id }})"
+                                    wire:confirm="Delete this message history record?"
+                                    style="color:#b91c1c; font-weight:800;"
+                                >
+                                    Delete
+                                </button>
+                            </td>
                         </tr>
-                        </thead>
-                        <tbody>
-                        @forelse ($message->recipients as $recipient)
+
+                        @if ($this->expandedMessageId === $message->id)
                             <tr>
-                                <td style="border:1px solid #cbd5e1; padding:8px;">
-                                    {{ $recipient->student?->student_id }}
-                                    {{ $recipient->student?->full_name ?? $recipient->sponsor?->name ?? 'Recipient' }}
-                                </td>
-                                <td style="border:1px solid #cbd5e1; padding:8px;">{{ strtoupper($recipient->channel) }}</td>
-                                <td style="border:1px solid #cbd5e1; padding:8px;">{{ $recipient->destination }}</td>
-                                <td style="border:1px solid #cbd5e1; padding:8px;">{{ str($recipient->delivery_status)->headline() }}</td>
-                                <td style="border:1px solid #cbd5e1; padding:8px;">{{ $recipient->provider_message_id ?: '-' }}</td>
-                                <td style="border:1px solid #cbd5e1; padding:8px;">
-                                    {{ $recipient->sent_at?->format('M j, Y g:i A') ?: $recipient->failed_at?->format('M j, Y g:i A') ?: '-' }}
-                                </td>
-                                <td style="border:1px solid #cbd5e1; padding:8px; white-space:normal;">
-                                    {{ $recipient->failure_reason ?: '-' }}
+                                <td colspan="10" style="border-bottom:1px solid #cbd5e1; padding:14px; background:#f8fafc;">
+                                    <div style="border:1px solid #cbd5e1; padding:12px; background:#fff; margin-bottom:12px;">
+                                        <strong>Full Message</strong>
+                                        <div style="margin-top:6px; white-space:pre-wrap;">{{ $message->message }}</div>
+                                    </div>
+
+                                    <div style="overflow:auto;">
+                                        <table style="width:100%; min-width:920px; border-collapse:collapse;">
+                                            <thead>
+                                            <tr>
+                                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Recipient</th>
+                                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Channel</th>
+                                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Destination</th>
+                                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Status</th>
+                                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Sent / Failed At</th>
+                                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Failure Reason</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            @foreach ($message->recipients as $recipient)
+                                                <tr>
+                                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ $recipient->student?->student_id }} {{ $recipient->student?->full_name ?? $recipient->sponsor?->name ?? 'Recipient' }}</td>
+                                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ strtoupper($recipient->channel) }}</td>
+                                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ $recipient->destination }}</td>
+                                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ str($recipient->delivery_status)->headline() }}</td>
+                                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ $recipient->sent_at?->format('M j, Y g:i A') ?: $recipient->failed_at?->format('M j, Y g:i A') ?: '-' }}</td>
+                                                    <td style="border:1px solid #cbd5e1; padding:8px; white-space:normal;">{{ $recipient->failure_reason ?: '-' }}</td>
+                                                </tr>
+                                            @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" style="border:1px solid #cbd5e1; padding:8px;">No recipients were created for this message.</td>
-                            </tr>
-                        @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </x-filament::section>
-        @empty
-            <x-filament::section>
-                <x-slot name="heading">No Message History</x-slot>
-                Send an email or SMS first. The delivery result for each student will appear here.
-            </x-filament::section>
-        @endforelse
+                        @endif
+                    @empty
+                        <tr>
+                            <td colspan="10" style="padding:18px;">No message history yet.</td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-filament::section>
     </div>
 </x-filament-panels::page>

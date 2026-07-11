@@ -76,6 +76,14 @@ class GmailApiEmailSender
             'MIME-Version: 1.0',
         ];
 
+        if ($message->cc !== []) {
+            $headers[] = 'Cc: '.$this->mailboxList($message->cc);
+        }
+
+        if ($message->bcc !== []) {
+            $headers[] = 'Bcc: '.$this->mailboxList($message->bcc);
+        }
+
         if ($message->replyTo) {
             $headers[] = 'Reply-To: '.EmailAddress::normalize($message->replyTo);
         }
@@ -154,6 +162,17 @@ class GmailApiEmailSender
         }
 
         return $this->encodedHeader($name).' <'.$email.'>';
+    }
+
+    /**
+     * @param array<int, string> $emails
+     */
+    private function mailboxList(array $emails): string
+    {
+        return collect($emails)
+            ->map(fn (string $email): string => EmailAddress::normalize($email))
+            ->filter()
+            ->implode(', ');
     }
 
     private function escapeHeaderValue(string $value): string
