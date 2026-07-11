@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Communication;
+use App\Models\GmailAccount;
 use App\Models\Programme;
 use App\Models\ScholarshipProgramme;
 use App\Models\Sponsor;
@@ -41,6 +42,7 @@ class SendEmail extends Page
      * @var array<string, mixed>
      */
     public array $data = [
+        'delivery_provider' => 'gmail',
         'recipient_group' => 'students',
         'send_all' => true,
         'send_all_sponsors' => true,
@@ -57,8 +59,28 @@ class SendEmail extends Page
             ->statePath('data')
             ->components([
                 Section::make('Email Message')
-                    ->description('Email is sent from the configured scholarship Gmail/SMTP account to selected students and/or sponsors.')
+                    ->description('Connect Gmail, then select students or sponsors and send the message from inside PUSMS.')
                     ->schema([
+                        Select::make('delivery_provider')
+                            ->label('Send From')
+                            ->options(fn (): array => [
+                                'gmail' => 'Connected Gmail account',
+                                'smtp' => 'System SMTP account',
+                            ])
+                            ->default('gmail')
+                            ->required()
+                            ->live(),
+                        Select::make('gmail_account_id')
+                            ->label('Gmail Account')
+                            ->options(fn (): array => GmailAccount::query()
+                                ->where('user_id', Auth::id())
+                                ->latest('last_used_at')
+                                ->latest()
+                                ->pluck('email', 'id')
+                                ->all())
+                            ->searchable()
+                            ->required(fn (Get $get): bool => $get('delivery_provider') === 'gmail')
+                            ->visible(fn (Get $get): bool => $get('delivery_provider') === 'gmail'),
                         Select::make('recipient_group')
                             ->label('Send To')
                             ->options([
@@ -95,6 +117,19 @@ class SendEmail extends Page
     public function send(CommunicationService $communications): void
     {
         $state = $this->form->getState();
+        $deliveryProvider = $state['delivery_provider'] ?? 'gmail';
+        $gmailAccountId = $deliveryProvider === 'gmail' ? ($state['gmail_account_id'] ?? null) : null;
+
+        if ($deliveryProvider === 'gmail' && ! GmailAccount::query()->where('user_id', Auth::id())->whereKey($gmailAccountId)->exists()) {
+            Notification::make()
+                ->title('Connect or select a Gmail account first')
+                ->body('Use the Connect Gmail button on this page, then select the Gmail account before sending.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         $recipientGroup = $state['recipient_group'] ?? 'students';
         $students = in_array($recipientGroup, ['students', 'students_and_sponsors'], true)
             ? $this->studentsForState($state, 'email')->get()
@@ -119,9 +154,11 @@ class SendEmail extends Page
             'attachment_original_name' => $state['attachment_original_name'] ?? null,
             'communication_type' => 'email',
             'created_by' => Auth::id(),
+            'gmail_account_id' => $gmailAccountId,
             'status' => 'draft',
             'metadata' => [
                 'source_page' => 'send_email',
+                'delivery_provider' => $deliveryProvider,
                 'student_count' => $students->count(),
                 'sponsor_count' => $sponsors->count(),
             ],

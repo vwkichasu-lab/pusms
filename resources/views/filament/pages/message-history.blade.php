@@ -27,6 +27,7 @@
 
                 <x-slot name="description">
                     Status: {{ str($message->status)->headline() }}
+                    | Sender: {{ $message->gmailAccount?->email ?? (($message->metadata['delivery_provider'] ?? null) === 'smtp' ? 'System SMTP' : 'System Email') }}
                     | Sent: {{ $sent }}
                     | Failed: {{ $failed }}
                     | Queued: {{ $queued }}

@@ -7,6 +7,7 @@ use App\Services\Notifications\Contracts\EmailSender;
 use App\Services\Notifications\Contracts\SmsSender;
 use App\Services\Notifications\Data\EmailMessage;
 use App\Services\Notifications\Data\SmsMessage;
+use App\Services\Notifications\Senders\GmailApiEmailSender;
 use App\Services\TemplateVariableService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -28,10 +29,10 @@ class SendCommunicationRecipient implements ShouldQueue
 
     public function __construct(public int $recipientId) {}
 
-    public function handle(EmailSender $email, SmsSender $sms, TemplateVariableService $templates): void
+    public function handle(EmailSender $email, SmsSender $sms, TemplateVariableService $templates, ?GmailApiEmailSender $gmailEmail = null): void
     {
         $recipient = CommunicationRecipient::query()
-            ->with(['communication', 'student.level', 'student.programme', 'sponsor'])
+            ->with(['communication.gmailAccount', 'student.level', 'student.programme', 'sponsor'])
             ->findOrFail($this->recipientId);
 
         if ($recipient->delivery_status === 'sent') {
@@ -58,14 +59,18 @@ class SendCommunicationRecipient implements ShouldQueue
                     'messageBody' => $message,
                 ])->render();
 
-                $result = $email->send(new EmailMessage(
+                $emailMessage = new EmailMessage(
                     to: $recipient->destination,
                     subject: $recipient->communication->subject ?? 'Pentecost University Scholarship Update',
                     text: $message,
                     html: $html,
                     idempotencyKey: $this->idempotencyKey($recipient),
                     attachments: $this->attachments($recipient),
-                ));
+                );
+
+                $result = $recipient->communication->gmailAccount
+                    ? ($gmailEmail ?? app(GmailApiEmailSender::class))->send($emailMessage, $recipient->communication->gmailAccount)
+                    : $email->send($emailMessage);
             } else {
                 $result = $sms->send(new SmsMessage(
                     to: $recipient->destination,

@@ -38,7 +38,7 @@ class MessageHistory extends Page
     public function getMessagesProperty(): array
     {
         return Communication::query()
-            ->with(['creator', 'recipients.student', 'recipients.sponsor'])
+            ->with(['creator', 'gmailAccount', 'recipients.student', 'recipients.sponsor'])
             ->whereIn('communication_type', ['email', 'sms'])
             ->latest()
             ->limit(30)

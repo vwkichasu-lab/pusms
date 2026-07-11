@@ -9,6 +9,7 @@ use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -50,6 +51,11 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->profile_photo_url;
+    }
+
+    public function gmailAccounts(): HasMany
+    {
+        return $this->hasMany(GmailAccount::class);
     }
 
     /**

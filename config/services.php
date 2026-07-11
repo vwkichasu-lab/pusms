@@ -48,4 +48,9 @@ return [
         'base_url' => env('ARKESEL_SMS_BASE_URL', 'https://sms.arkesel.com/api/v2/sms/send'),
     ],
 
+    'gmail' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+    ],
+
 ];
