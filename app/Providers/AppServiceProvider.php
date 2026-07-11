@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\Notifications\Contracts\EmailSender;
 use App\Services\Notifications\Contracts\SmsSender;
+use App\Services\Notifications\Senders\ArkeselSmsSender;
 use App\Services\Notifications\Senders\FakeEmailSender;
 use App\Services\Notifications\Senders\FakeSmsSender;
 use App\Services\Notifications\Senders\HubtelSmsSender;
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SmsSender::class, function ($app): SmsSender {
             return match (config('notifications.sms.provider')) {
                 'fake' => $app->make(FakeSmsSender::class),
+                'arkesel' => $app->make(ArkeselSmsSender::class),
                 default => $app->make(HubtelSmsSender::class),
             };
         });

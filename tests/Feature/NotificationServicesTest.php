@@ -11,6 +11,7 @@ use App\Services\Notifications\Data\SmsMessage;
 use App\Services\Notifications\Exceptions\NotificationConfigurationException;
 use App\Services\Notifications\Exceptions\NotificationValidationException;
 use App\Services\Notifications\Exceptions\TransientNotificationException;
+use App\Services\Notifications\Senders\ArkeselSmsSender;
 use App\Services\Notifications\Senders\FakeEmailSender;
 use App\Services\Notifications\Senders\FakeSmsSender;
 use App\Services\Notifications\Senders\HubtelSmsSender;
@@ -72,6 +73,29 @@ class NotificationServicesTest extends TestCase
         $this->assertSame('hubtel-123', $result->providerMessageId);
 
         Http::assertSent(fn ($request): bool => $request['To'] === '233244123456');
+    }
+
+    public function test_successful_sms_sending_can_use_arkesel_adapter(): void
+    {
+        config()->set('services.arkesel.api_key', 'arkesel-key');
+        config()->set('services.arkesel.sender_id', 'PUSMS');
+        config()->set('services.arkesel.base_url', 'https://sms.arkesel.test/api/v2/sms/send');
+
+        Http::fake([
+            'sms.arkesel.test/*' => Http::response(['message_id' => 'arkesel-123'], 200),
+        ]);
+
+        $result = app(ArkeselSmsSender::class)->send(new SmsMessage(
+            to: '0244123456',
+            message: 'PUSMS test SMS.',
+            idempotencyKey: 'sms-arkesel-1',
+        ));
+
+        $this->assertTrue($result->success);
+        $this->assertSame('arkesel', $result->provider);
+        $this->assertSame('arkesel-123', $result->providerMessageId);
+
+        Http::assertSent(fn ($request): bool => $request['recipients'] === ['233244123456']);
     }
 
     public function test_invalid_email_address_is_rejected(): void
