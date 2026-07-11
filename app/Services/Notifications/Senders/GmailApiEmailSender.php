@@ -30,7 +30,7 @@ class GmailApiEmailSender
         }
 
         try {
-            $response = Http::withToken($this->gmail->accessToken($account))
+            $response = Http::withToken($this->gmail->refreshAccessToken($account))
                 ->timeout(30)
                 ->post('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', [
                     'raw' => $this->base64UrlEncode($this->mimeMessage($message, $account)),
@@ -38,10 +38,8 @@ class GmailApiEmailSender
                 ->throw()
                 ->json();
         } catch (RequestException $exception) {
-            $body = $exception->response?->body();
-
             throw new TransientNotificationException(
-                'Gmail API send failed: '.($body ?: $exception->getMessage()),
+                $this->safeGmailApiError($exception),
                 'gmail_api_send_failed',
                 $exception,
             );
@@ -64,7 +62,7 @@ class GmailApiEmailSender
 
     private function mimeMessage(EmailMessage $message, GmailAccount $account): string
     {
-        $to = EmailAddress::normalize($message->to);
+        $to = $this->mailbox(EmailAddress::normalize($message->to), $message->toName);
         $subject = $this->encodedHeader($message->subject);
         $fromName = $account->name ?: $account->email;
         $from = $this->encodedHeader($fromName).' <'.$account->email.'>';
@@ -77,6 +75,10 @@ class GmailApiEmailSender
             'Subject: '.$subject,
             'MIME-Version: 1.0',
         ];
+
+        if ($message->replyTo) {
+            $headers[] = 'Reply-To: '.EmailAddress::normalize($message->replyTo);
+        }
 
         if ($message->attachments === []) {
             return implode("\r\n", [
@@ -145,8 +147,34 @@ class GmailApiEmailSender
         return mb_encode_mimeheader($value, 'UTF-8', 'B', "\r\n");
     }
 
+    private function mailbox(string $email, ?string $name = null): string
+    {
+        if (blank($name)) {
+            return $email;
+        }
+
+        return $this->encodedHeader($name).' <'.$email.'>';
+    }
+
     private function escapeHeaderValue(string $value): string
     {
         return str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
+    }
+
+    private function safeGmailApiError(RequestException $exception): string
+    {
+        $payload = $exception->response?->json();
+        $reason = null;
+
+        if (is_array($payload)) {
+            $reason = $payload['error']['errors'][0]['reason'] ?? $payload['error']['status'] ?? null;
+        }
+
+        return match ($reason) {
+            'insufficientPermissions', 'PERMISSION_DENIED' => 'Gmail API refused the message because the connected account has insufficient permission. Reconnect Gmail and approve the send scope.',
+            'forbidden' => 'Gmail API is disabled or not available for this Google project/account.',
+            'invalidArgument', 'INVALID_ARGUMENT' => 'Gmail API refused the message format or recipient address. Check the recipient email and message content.',
+            default => 'Gmail API send failed. Check that Gmail API is enabled and the connected Gmail account is still authorized.',
+        };
     }
 }

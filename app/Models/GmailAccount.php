@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'refresh_token',
     'token_expires_at',
     'scopes',
+    'connected_at',
+    'revoked_at',
+    'status',
     'last_used_at',
 ])]
 class GmailAccount extends Model
@@ -26,6 +29,8 @@ class GmailAccount extends Model
             'refresh_token' => 'encrypted',
             'token_expires_at' => 'datetime',
             'scopes' => 'array',
+            'connected_at' => 'datetime',
+            'revoked_at' => 'datetime',
             'last_used_at' => 'datetime',
         ];
     }

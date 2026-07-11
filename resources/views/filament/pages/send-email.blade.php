@@ -4,13 +4,16 @@
         <x-slot name="description">Connect Gmail once, then send emails to students or sponsors from inside PUSMS.</x-slot>
 
         @php
-            $gmailAccounts = auth()->user()?->gmailAccounts()->latest('last_used_at')->latest()->get() ?? collect();
+            $gmailAccounts = auth()->user()?->gmailAccounts()->where('status', 'connected')->latest('last_used_at')->latest()->get() ?? collect();
         @endphp
 
         <div class="space-y-4">
             <div class="flex flex-wrap gap-3">
                 <x-filament::button tag="a" href="{{ route('gmail.connect') }}" icon="heroicon-m-link">
                     Connect Gmail
+                </x-filament::button>
+                <x-filament::button tag="a" color="gray" href="{{ route('filament.admin.pages.gmail-settings') }}" icon="heroicon-m-cog-6-tooth">
+                    Gmail Settings
                 </x-filament::button>
             </div>
 

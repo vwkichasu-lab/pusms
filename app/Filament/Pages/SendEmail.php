@@ -74,6 +74,7 @@ class SendEmail extends Page
                             ->label('Gmail Account')
                             ->options(fn (): array => GmailAccount::query()
                                 ->where('user_id', Auth::id())
+                                ->where('status', 'connected')
                                 ->latest('last_used_at')
                                 ->latest()
                                 ->pluck('email', 'id')
@@ -93,6 +94,10 @@ class SendEmail extends Page
                             ->live(),
                         TextInput::make('subject')
                             ->required()
+                            ->maxLength(255),
+                        TextInput::make('reply_to')
+                            ->label('Reply-To Email')
+                            ->email()
                             ->maxLength(255),
                         FileUpload::make('attachment_path')
                             ->label('Attachment')
@@ -120,7 +125,7 @@ class SendEmail extends Page
         $deliveryProvider = $state['delivery_provider'] ?? 'gmail';
         $gmailAccountId = $deliveryProvider === 'gmail' ? ($state['gmail_account_id'] ?? null) : null;
 
-        if ($deliveryProvider === 'gmail' && ! GmailAccount::query()->where('user_id', Auth::id())->whereKey($gmailAccountId)->exists()) {
+        if ($deliveryProvider === 'gmail' && ! GmailAccount::query()->where('user_id', Auth::id())->where('status', 'connected')->whereKey($gmailAccountId)->exists()) {
             Notification::make()
                 ->title('Connect or select a Gmail account first')
                 ->body('Use the Connect Gmail button on this page, then select the Gmail account before sending.')
@@ -159,6 +164,7 @@ class SendEmail extends Page
             'metadata' => [
                 'source_page' => 'send_email',
                 'delivery_provider' => $deliveryProvider,
+                'reply_to' => $state['reply_to'] ?? null,
                 'student_count' => $students->count(),
                 'sponsor_count' => $sponsors->count(),
             ],

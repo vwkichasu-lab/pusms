@@ -15,6 +15,7 @@ final readonly class EmailMessage
         public ?string $html = null,
         public ?string $template = null,
         public array $templateData = [],
+        public ?string $toName = null,
         public ?string $replyTo = null,
         public ?string $idempotencyKey = null,
         public array $attachments = [],

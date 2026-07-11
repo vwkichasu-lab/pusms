@@ -43,7 +43,7 @@ final class LaravelSmtpEmailSender implements EmailSender
         try {
             if (filled($html)) {
                 Mail::html($html, function ($mail) use ($to, $subject, $message): void {
-                    $mail->to($to)->subject($subject);
+                    $mail->to($message->toName ? [$to => $message->toName] : $to)->subject($subject);
 
                     if ($message->replyTo) {
                         $mail->replyTo(EmailAddress::normalize($message->replyTo));
@@ -57,7 +57,7 @@ final class LaravelSmtpEmailSender implements EmailSender
                 });
             } else {
                 Mail::raw($text, function ($mail) use ($to, $subject, $message): void {
-                    $mail->to($to)->subject($subject);
+                    $mail->to($message->toName ? [$to => $message->toName] : $to)->subject($subject);
 
                     if ($message->replyTo) {
                         $mail->replyTo(EmailAddress::normalize($message->replyTo));

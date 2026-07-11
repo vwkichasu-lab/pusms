@@ -13,38 +13,47 @@ class GmailOAuthController extends Controller
 {
     public function redirect(Request $request, GmailOAuthService $gmail): RedirectResponse
     {
-        if (! $gmail->configured()) {
+        abort_unless(Auth::user()?->can('send email'), 403);
+
+        try {
+            $gmail->assertConfigured();
+        } catch (\Throwable $exception) {
             Notification::make()
                 ->title('Gmail OAuth is not configured')
-                ->body('Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the server environment first.')
+                ->body($exception->getMessage())
                 ->danger()
                 ->send();
 
-            return redirect()->route('filament.admin.pages.send-email');
+            return redirect()->route('filament.admin.pages.gmail-settings');
         }
 
         $state = $gmail->state();
         $request->session()->put('gmail_oauth_state', $state);
 
-        return redirect()->away($gmail->authorizationUrl($state));
+        return redirect()->away($gmail->getAuthorizationUrl($state));
     }
 
     public function callback(Request $request, GmailOAuthService $gmail): RedirectResponse
     {
+        abort_unless(Auth::user()?->can('send email'), 403);
         abort_if(! hash_equals((string) $request->session()->pull('gmail_oauth_state'), (string) $request->query('state')), 403);
 
         if ($request->filled('error')) {
             Notification::make()
                 ->title('Gmail connection cancelled')
-                ->body((string) $request->query('error'))
+                ->body('Google did not authorize Gmail sending access.')
                 ->warning()
                 ->send();
 
-            return redirect()->route('filament.admin.pages.send-email');
+            return redirect()->route('filament.admin.pages.gmail-settings');
         }
 
         try {
-            $account = $gmail->connect(Auth::user(), (string) $request->query('code'));
+            if (! $request->filled('code')) {
+                throw new \RuntimeException('Google did not return an authorization code. Try connecting Gmail again.');
+            }
+
+            $account = $gmail->handleCallback(Auth::user(), (string) $request->query('code'));
         } catch (\Throwable $exception) {
             Notification::make()
                 ->title('Gmail connection failed')
@@ -52,7 +61,7 @@ class GmailOAuthController extends Controller
                 ->danger()
                 ->send();
 
-            return redirect()->route('filament.admin.pages.send-email');
+            return redirect()->route('filament.admin.pages.gmail-settings');
         }
 
         Notification::make()
@@ -61,15 +70,16 @@ class GmailOAuthController extends Controller
             ->success()
             ->send();
 
-        return redirect()->route('filament.admin.pages.send-email');
+        return redirect()->route('filament.admin.pages.gmail-settings');
     }
 
-    public function disconnect(GmailAccount $gmailAccount): RedirectResponse
+    public function disconnect(GmailAccount $gmailAccount, GmailOAuthService $gmail): RedirectResponse
     {
+        abort_unless(Auth::user()?->can('send email'), 403);
         abort_unless($gmailAccount->user_id === Auth::id(), 403);
 
         $email = $gmailAccount->email;
-        $gmailAccount->delete();
+        $gmail->disconnect($gmailAccount);
 
         Notification::make()
             ->title('Gmail disconnected')
@@ -77,6 +87,6 @@ class GmailOAuthController extends Controller
             ->success()
             ->send();
 
-        return redirect()->route('filament.admin.pages.send-email');
+        return redirect()->route('filament.admin.pages.gmail-settings');
     }
 }

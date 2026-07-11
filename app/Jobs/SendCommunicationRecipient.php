@@ -64,6 +64,8 @@ class SendCommunicationRecipient implements ShouldQueue
                     subject: $recipient->communication->subject ?? 'Pentecost University Scholarship Update',
                     text: $message,
                     html: $html,
+                    toName: $recipient->student?->full_name ?? $recipient->sponsor?->contact_person ?? $recipient->sponsor?->name,
+                    replyTo: $recipient->communication->metadata['reply_to'] ?? null,
                     idempotencyKey: $this->idempotencyKey($recipient),
                     attachments: $this->attachments($recipient),
                 );
