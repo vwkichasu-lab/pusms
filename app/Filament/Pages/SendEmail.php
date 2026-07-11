@@ -54,6 +54,12 @@ class SendEmail extends Page
         return Auth::user()?->can('send email') ?? false;
     }
 
+    public function mount(): void
+    {
+        $this->data['delivery_provider'] = 'gmail';
+        $this->data['gmail_account_id'] = $this->defaultGmailAccountId();
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -75,7 +81,7 @@ class SendEmail extends Page
                             ->options(fn (): array => $this->connectedGmailAccounts()->pluck('email', 'id')->all())
                             ->default(fn (): ?int => $this->defaultGmailAccountId())
                             ->searchable()
-                            ->required(),
+                            ->helperText('If this field looks filled but validation complains, PUSMS will still use the connected scholarship Gmail automatically when you send.'),
                         Select::make('recipient_group')
                             ->label('Send To')
                             ->options([
