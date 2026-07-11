@@ -53,13 +53,20 @@ Route::post('/maintenance/send-test-email', function (Request $request) {
         'message' => ['nullable', 'string', 'max:5000'],
     ]);
 
-    Mail::raw(
-        $validated['message'] ?? 'This is a PUSMS test email sent through the scholarship Gmail SMTP account.',
-        function ($mail) use ($validated): void {
-            $mail->to($validated['to'])
-                ->subject($validated['subject'] ?? 'PUSMS Test Email');
-        },
-    );
+    try {
+        Mail::raw(
+            $validated['message'] ?? 'This is a PUSMS test email sent through the scholarship Gmail SMTP account.',
+            function ($mail) use ($validated): void {
+                $mail->to($validated['to'])
+                    ->subject($validated['subject'] ?? 'PUSMS Test Email');
+            },
+        );
+    } catch (Throwable $exception) {
+        return response()->json([
+            'sent' => false,
+            'error' => $exception->getMessage(),
+        ], 422);
+    }
 
     return response()->json([
         'sent' => true,
