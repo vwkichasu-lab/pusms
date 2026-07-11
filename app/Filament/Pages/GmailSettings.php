@@ -53,7 +53,7 @@ class GmailSettings extends Page
                                 ->orderBy('email')
                                 ->pluck('email', 'id')
                                 ->all())
-                            ->required()
+                            ->default(fn (): ?int => $this->defaultGmailAccountId())
                             ->searchable(),
                         TextInput::make('test_email')
                             ->label('Recipient Email')
@@ -75,7 +75,7 @@ class GmailSettings extends Page
         $account = GmailAccount::query()
             ->where('user_id', Auth::id())
             ->where('status', 'connected')
-            ->find($state['gmail_account_id'] ?? null);
+            ->find($state['gmail_account_id'] ?? $this->defaultGmailAccountId());
 
         if (! $account) {
             Notification::make()
@@ -136,5 +136,14 @@ class GmailSettings extends Page
             ->latest()
             ->get()
             ->all();
+    }
+
+    private function defaultGmailAccountId(): ?int
+    {
+        return GmailAccount::query()
+            ->where('user_id', Auth::id())
+            ->where('status', 'connected')
+            ->orderBy('email')
+            ->value('id');
     }
 }

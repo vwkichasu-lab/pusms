@@ -79,8 +79,8 @@ class SendEmail extends Page
                                 ->latest()
                                 ->pluck('email', 'id')
                                 ->all())
+                            ->default(fn (): ?int => $this->defaultGmailAccountId())
                             ->searchable()
-                            ->required(fn (Get $get): bool => $get('delivery_provider') === 'gmail')
                             ->visible(fn (Get $get): bool => $get('delivery_provider') === 'gmail'),
                         Select::make('recipient_group')
                             ->label('Send To')
@@ -123,12 +123,14 @@ class SendEmail extends Page
     {
         $state = $this->form->getState();
         $deliveryProvider = $state['delivery_provider'] ?? 'gmail';
-        $gmailAccountId = $deliveryProvider === 'gmail' ? ($state['gmail_account_id'] ?? null) : null;
+        $gmailAccountId = $deliveryProvider === 'gmail'
+            ? ($state['gmail_account_id'] ?? $this->defaultGmailAccountId())
+            : null;
 
         if ($deliveryProvider === 'gmail' && ! GmailAccount::query()->where('user_id', Auth::id())->where('status', 'connected')->whereKey($gmailAccountId)->exists()) {
             Notification::make()
                 ->title('Connect or select a Gmail account first')
-                ->body('Use the Connect Gmail button on this page, then select the Gmail account before sending.')
+                ->body('Open Gmail Settings, connect Gmail, then return to Send Email.')
                 ->danger()
                 ->send();
 
@@ -269,6 +271,16 @@ class SendEmail extends Page
             ])
             ->columns(1)
             ->visible(fn (Get $get): bool => in_array($get('recipient_group'), ['sponsors', 'students_and_sponsors'], true));
+    }
+
+    private function defaultGmailAccountId(): ?int
+    {
+        return GmailAccount::query()
+            ->where('user_id', Auth::id())
+            ->where('status', 'connected')
+            ->latest('last_used_at')
+            ->latest()
+            ->value('id');
     }
 
     /**
