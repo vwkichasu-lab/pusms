@@ -107,7 +107,7 @@ class StudentReportService
                 ->first(fn ($recipient): bool => str_contains(strtolower((string) $recipient->communication?->message), $search));
 
             if ($communication?->communication) {
-                return ['Communication History', route('filament.admin.resources.communications.edit', $communication->communication)];
+                return ['Student Message', route('filament.admin.resources.students.edit', $student)];
             }
         }
 

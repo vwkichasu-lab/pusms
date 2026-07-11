@@ -10,7 +10,7 @@ class DefaultAdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->createUserFromEnvironment(
+        $primaryAdmin = $this->createUserFromEnvironment(
             emailKey: 'PUSMS_ADMIN_EMAIL',
             passwordKey: 'PUSMS_ADMIN_PASSWORD',
             nameKey: 'PUSMS_ADMIN_NAME',
@@ -27,8 +27,16 @@ class DefaultAdminUserSeeder extends Seeder
             usernameKey: 'PUSMS_BETTY_USERNAME',
             defaultName: 'Betty',
             defaultUsername: 'Betty',
-            role: 'Super Administrator',
+            role: 'Scholarship Secretary',
         );
+
+        if ($primaryAdmin) {
+            User::query()
+                ->whereKeyNot($primaryAdmin->id)
+                ->get()
+                ->filter(fn (User $user): bool => $user->hasRole('Super Administrator'))
+                ->each(fn (User $user): mixed => $user->syncRoles(['Scholarship Secretary']));
+        }
     }
 
     private function createUserFromEnvironment(
@@ -39,14 +47,14 @@ class DefaultAdminUserSeeder extends Seeder
         string $defaultName,
         string $defaultUsername,
         string $role,
-    ): void {
+    ): ?User {
         $email = env($emailKey);
         $password = env($passwordKey);
 
         if (blank($email) || blank($password)) {
             $this->command?->warn("Skipped {$defaultName} user. Set {$emailKey} and {$passwordKey} before running this seeder.");
 
-            return;
+            return null;
         }
 
         $user = User::updateOrCreate(
@@ -60,5 +68,7 @@ class DefaultAdminUserSeeder extends Seeder
         );
 
         $user->syncRoles([$role]);
+
+        return $user;
     }
 }
