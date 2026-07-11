@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\CommunicationRecipient;
 use App\Models\Programme;
 use App\Models\Student;
 use Filament\Support\Enums\IconPosition;
@@ -23,6 +24,7 @@ class PusmsStatsOverview extends StatsOverviewWidget
     {
         $hasStudents = Schema::hasTable('students');
         $hasProgrammes = Schema::hasTable('programmes');
+        $hasCommunicationRecipients = Schema::hasTable('communication_recipients');
 
         return [
             Stat::make('Total Students', $hasStudents ? Student::query()->count() : 0)
@@ -45,7 +47,7 @@ class PusmsStatsOverview extends StatsOverviewWidget
                 ->description('Final-year scholarship beneficiaries')
                 ->descriptionIcon('heroicon-m-flag', IconPosition::Before)
                 ->color('primary'),
-            Stat::make('Messages Sent', 0)
+            Stat::make('Messages Sent', $hasCommunicationRecipients ? CommunicationRecipient::query()->where('delivery_status', 'sent')->count() : 0)
                 ->description('Email and SMS delivery metrics')
                 ->descriptionIcon('heroicon-m-paper-airplane', IconPosition::Before)
                 ->color('primary'),

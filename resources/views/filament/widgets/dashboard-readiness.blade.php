@@ -7,6 +7,38 @@
                 grid-template-columns: repeat(4, minmax(0, 1fr));
             }
 
+            .pusms-dashboard-hero {
+                display: grid;
+                grid-template-columns: minmax(0, 1.2fr) minmax(220px, .8fr);
+                gap: 1.25rem;
+                align-items: center;
+                margin-bottom: 1.25rem;
+                border: 1px solid #cbd5e1;
+                background: #ffffff;
+                padding: 1.25rem;
+            }
+
+            .pusms-dashboard-hero h2 {
+                margin: 0;
+                color: #0f172a;
+                font-size: 1.5rem;
+                font-weight: 900;
+            }
+
+            .pusms-dashboard-hero p {
+                margin: .5rem 0 0;
+                color: #475569;
+                font-size: .95rem;
+                line-height: 1.6;
+            }
+
+            .pusms-dashboard-hero img {
+                width: min(100%, 360px);
+                max-height: 190px;
+                object-fit: contain;
+                justify-self: center;
+            }
+
             .pusms-work-card,
             .pusms-phase-card {
                 background: #ffffff;
@@ -72,6 +104,10 @@
             }
 
             @media (max-width: 720px) {
+                .pusms-dashboard-hero {
+                    grid-template-columns: 1fr;
+                }
+
                 .pusms-work-grid,
                 .pusms-phase-card {
                     grid-template-columns: 1fr;
@@ -91,6 +127,20 @@
         <x-slot name="description">
             Core work areas for managing scholarship students, awards, results, communication, reports, and imports.
         </x-slot>
+
+        @php
+            $hour = now()->hour;
+            $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+            $name = auth()->user()?->name ?: 'Administrator';
+        @endphp
+
+        <div class="pusms-dashboard-hero">
+            <div>
+                <h2>{{ $greeting }}, {{ $name }}</h2>
+                <p>Welcome to the Pentecost University Scholarship Management System. Use the dashboard to monitor students, awards, communication, reports, and academic records.</p>
+            </div>
+            <img src="/images/pentvars-3d.png" alt="Pentecost University">
+        </div>
 
         <div class="pusms-work-grid">
             @foreach ([

@@ -74,13 +74,5 @@
                 </table>
             </div>
         </x-filament::section>
-
-        <form wire:submit="sendTestEmail" class="space-y-4">
-            {{ $this->form }}
-
-            <x-filament::button type="submit" icon="heroicon-m-paper-airplane">
-                Send Test Email
-            </x-filament::button>
-        </form>
     </div>
 </x-filament-panels::page>

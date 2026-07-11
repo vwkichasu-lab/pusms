@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\DashboardReadiness;
+use App\Filament\Pages\GmailInbox;
 use App\Filament\Pages\MyProfile;
 use App\Filament\Widgets\PusmsStatsOverview;
 use App\Filament\Widgets\ScholarshipGrowthChart;
@@ -272,6 +273,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
+                GmailInbox::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([

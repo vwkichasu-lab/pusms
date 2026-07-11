@@ -26,6 +26,11 @@ class ScholarshipLetterGenerator extends Page
 
     public array $data = [];
 
+    public function mount(): void
+    {
+        $this->data['award_id'] ??= null;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -47,7 +52,7 @@ class ScholarshipLetterGenerator extends Page
                                 ->all())
                             ->searchable()
                             ->live()
-                            ->required(),
+                            ->afterStateUpdated(fn ($state) => $this->data['award_id'] = $state),
                         Placeholder::make('selected_student_details')
                             ->label('Selected Student Details')
                             ->content(function (Get $get): string {
@@ -66,7 +71,8 @@ class ScholarshipLetterGenerator extends Page
 
     public function openLetter(): void
     {
-        $awardId = $this->form->getState()['award_id'] ?? null;
+        $state = $this->form->getRawState();
+        $awardId = $state['award_id'] ?? $this->data['award_id'] ?? null;
 
         if (! $awardId) {
             Notification::make()
@@ -82,7 +88,8 @@ class ScholarshipLetterGenerator extends Page
 
     public function getLetterUrlProperty(): ?string
     {
-        $awardId = $this->form->getState()['award_id'] ?? $this->data['award_id'] ?? null;
+        $state = $this->form->getRawState();
+        $awardId = $state['award_id'] ?? $this->data['award_id'] ?? null;
 
         return $awardId ? route('student-scholarships.letter', ['award' => $awardId]) : null;
     }

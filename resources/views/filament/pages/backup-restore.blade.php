@@ -43,5 +43,49 @@
                 </table>
             </div>
         </x-filament::section>
+
+        <x-filament::section>
+            <x-slot name="heading">Recycle Bin</x-slot>
+            <x-slot name="description">Restore recently deleted students, sponsors, and Types Of Scholarship without replacing the whole database.</x-slot>
+
+            @foreach ($this->recycleBin as $group => $records)
+                <div style="margin-bottom:18px;">
+                    <strong>{{ $group }}</strong>
+                    <div style="overflow:auto; margin-top:8px;">
+                        <table style="width:100%; min-width:720px; border-collapse:collapse;">
+                            <thead>
+                            <tr>
+                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Record</th>
+                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Deleted At</th>
+                                <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @forelse ($records as $record)
+                                <tr>
+                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ $record['name'] }}</td>
+                                    <td style="border:1px solid #cbd5e1; padding:8px;">{{ $record['deleted_at'] }}</td>
+                                    <td style="border:1px solid #cbd5e1; padding:8px;">
+                                        <x-filament::button
+                                            size="sm"
+                                            color="gray"
+                                            wire:click="restoreDeleted('{{ $record['type'] }}', {{ $record['id'] }})"
+                                            wire:confirm="Restore this deleted record?"
+                                        >
+                                            Restore
+                                        </x-filament::button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" style="border:1px solid #cbd5e1; padding:8px;">No deleted records.</td>
+                                </tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
+        </x-filament::section>
     </div>
 </x-filament-panels::page>

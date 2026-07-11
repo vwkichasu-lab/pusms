@@ -29,7 +29,7 @@ class SendSms extends Page
 
     protected static string|UnitEnum|null $navigationGroup = 'Messaging';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $title = 'Send SMS';
 

@@ -14,13 +14,28 @@
         <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px;">
             <div style="border:1px solid #cbd5e1; padding:12px;">
                 <strong>Valid programme values</strong>
-                <ul style="margin-top:8px; padding-left:18px;">
-                    @forelse ($this->importReferences['programmes'] as $programme)
-                        <li>{{ $programme }}</li>
-                    @empty
-                        <li>Create programmes before importing students.</li>
-                    @endforelse
-                </ul>
+                <div style="overflow:auto; max-height:420px; margin-top:8px;">
+                    <table style="width:100%; min-width:520px; border-collapse:collapse;">
+                        <thead>
+                        <tr>
+                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">#</th>
+                            <th style="border:1px solid #cbd5e1; padding:8px; text-align:left;">Programme value</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse ($this->importReferences['programmes'] as $programme)
+                            <tr>
+                                <td style="border:1px solid #cbd5e1; padding:8px;">{{ $loop->iteration }}</td>
+                                <td style="border:1px solid #cbd5e1; padding:8px;">{{ $programme }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="2" style="border:1px solid #cbd5e1; padding:8px;">Create programmes before importing students.</td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div style="border:1px solid #cbd5e1; padding:12px;">

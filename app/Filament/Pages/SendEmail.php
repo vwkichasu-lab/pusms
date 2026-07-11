@@ -33,7 +33,7 @@ class SendEmail extends Page
 
     protected static string|UnitEnum|null $navigationGroup = 'Messaging';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $title = 'Send Email';
 

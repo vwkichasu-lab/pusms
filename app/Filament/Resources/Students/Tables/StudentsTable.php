@@ -7,6 +7,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Support\Icons\Heroicon;
@@ -62,6 +63,11 @@ class StudentsTable
                     ]),
             ])
             ->recordActions([
+                ViewAction::make()
+                    ->label('Details')
+                    ->modalHeading(fn ($record): string => $record->full_name)
+                    ->modalContent(fn ($record) => view('filament.modals.student-details', ['student' => $record]))
+                    ->slideOver(),
                 Action::make('history')
                     ->label('History')
                     ->icon(Heroicon::OutlinedClipboardDocumentList)

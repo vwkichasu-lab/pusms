@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
@@ -28,6 +29,8 @@ class StudentResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'student_id';
 
+    protected static ?string $navigationLabel = 'Students';
+
     public static function form(Schema $schema): Schema
     {
         return StudentForm::configure($schema);
@@ -36,6 +39,13 @@ class StudentResource extends Resource
     public static function table(Table $table): Table
     {
         return StudentsTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where(function (Builder $query): void {
+            $query->whereNull('alumni_status')->orWhere('alumni_status', '!=', 'alumni');
+        });
     }
 
     public static function getRelations(): array
