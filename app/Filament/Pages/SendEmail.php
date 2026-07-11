@@ -43,7 +43,7 @@ class SendEmail extends Page
      * @var array<string, mixed>
      */
     public array $data = [
-        'delivery_provider' => 'gmail',
+        'delivery_provider' => 'smtp',
         'recipient_group' => 'students',
         'send_all' => true,
         'send_all_sponsors' => true,
@@ -60,15 +60,15 @@ class SendEmail extends Page
             ->statePath('data')
             ->components([
                 Section::make('Email Message')
-                    ->description('Connect Gmail, then select students or sponsors and send the message from inside PUSMS.')
+                    ->description('Send from the scholarship Gmail account configured on the server, or open Gmail Compose as a manual backup.')
                     ->schema([
                         Select::make('delivery_provider')
                             ->label('Send From')
                             ->options(fn (): array => [
-                                'gmail' => 'Connected Gmail account',
-                                'smtp' => 'System SMTP account',
+                                'smtp' => 'Scholarship Gmail - system send',
+                                'gmail' => 'Connected Gmail API - advanced',
                             ])
-                            ->default('gmail')
+                            ->default('smtp')
                             ->required()
                             ->live(),
                         Select::make('gmail_account_id')
@@ -130,12 +130,13 @@ class SendEmail extends Page
 
         if ($deliveryProvider === 'gmail' && ! GmailAccount::query()->where('user_id', Auth::id())->where('status', 'connected')->whereKey($gmailAccountId)->exists()) {
             Notification::make()
-                ->title('Connect or select a Gmail account first')
-                ->body('Open Gmail Settings, connect Gmail, then return to Send Email.')
-                ->danger()
+                ->title('Using scholarship Gmail system send instead')
+                ->body('Connected Gmail API is not ready, so PUSMS will send through the configured scholarship Gmail SMTP account.')
+                ->warning()
                 ->send();
 
-            return;
+            $deliveryProvider = 'smtp';
+            $gmailAccountId = null;
         }
 
         $recipientGroup = $state['recipient_group'] ?? 'students';

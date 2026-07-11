@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     <x-filament::section>
         <x-slot name="heading">Gmail Sending Account</x-slot>
-        <x-slot name="description">Connect Gmail once, then send emails to students or sponsors from inside PUSMS.</x-slot>
+        <x-slot name="description">PUSMS sends through the scholarship Gmail server account by default. Connected Gmail is optional for the advanced Gmail API path.</x-slot>
 
         @php
             $gmailAccounts = auth()->user()?->gmailAccounts()->where('status', 'connected')->latest('last_used_at')->latest()->get() ?? collect();
@@ -59,7 +59,7 @@
 
         <div class="flex flex-wrap gap-3">
             <x-filament::button type="submit" icon="heroicon-m-paper-airplane">
-                Send Email
+                Send Through Scholarship Gmail
             </x-filament::button>
 
             <x-filament::button type="button" color="gray" icon="heroicon-m-arrow-top-right-on-square" wire:click="openGmailCompose">
