@@ -14,13 +14,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
+        $seeders = [
             RolePermissionSeeder::class,
             AcademicStructureSeeder::class,
             GhanaAdministrativeSeeder::class,
             ChurchAreaDistrictSeeder::class,
             DefaultAdminUserSeeder::class,
-            SampleScholarshipDataSeeder::class,
-        ]);
+        ];
+
+        if (filter_var(env('PUSMS_SEED_SAMPLE_DATA', false), FILTER_VALIDATE_BOOLEAN)) {
+            $seeders[] = SampleScholarshipDataSeeder::class;
+        }
+
+        $this->call($seeders);
     }
 }

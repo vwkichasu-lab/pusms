@@ -1,5 +1,18 @@
 <x-filament-panels::page>
     <div class="space-y-6">
+        @if ($this->messages)
+            <div style="display:flex; justify-content:flex-end;">
+                <button
+                    type="button"
+                    wire:click="deleteSelected"
+                    wire:confirm="Delete the selected message history records?"
+                    style="background:#dc2626; color:#fff; border:1px solid #b91c1c; border-radius:8px; padding:10px 14px; font-weight:700;"
+                >
+                    Delete selected
+                </button>
+            </div>
+        @endif
+
         @forelse ($this->messages as $message)
             @php
                 $sent = $message->recipients->where('delivery_status', 'sent')->count();
@@ -19,6 +32,22 @@
                     | Queued: {{ $queued }}
                     | Created: {{ $message->created_at?->format('M j, Y g:i A') }}
                 </x-slot>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:12px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-weight:700;">
+                        <input type="checkbox" wire:model.live="selectedMessages.{{ $message->id }}">
+                        Select this message
+                    </label>
+
+                    <button
+                        type="button"
+                        wire:click="deleteMessage({{ $message->id }})"
+                        wire:confirm="Delete this message history record?"
+                        style="background:#fff; color:#b91c1c; border:1px solid #b91c1c; border-radius:8px; padding:8px 12px; font-weight:700;"
+                    >
+                        Delete
+                    </button>
+                </div>
 
                 <div style="border:1px solid #cbd5e1; margin-bottom:12px; padding:12px; background:#fff;">
                     <strong>Message</strong>

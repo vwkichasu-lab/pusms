@@ -72,13 +72,13 @@ final class LaravelSmtpEmailSender implements EmailSender
             }
         } catch (TransportExceptionInterface $exception) {
             throw new TransientNotificationException(
-                'Email provider transport failed. For Gmail, use a Gmail App Password with SMTP enabled; the normal Gmail password is usually rejected.',
+                'Email provider transport failed: '.$exception->getMessage(),
                 'email_transport_failed',
                 $exception,
             );
         } catch (\Throwable $exception) {
             throw new PermanentNotificationException(
-                'Email provider rejected the message. Check the Gmail SMTP username, Gmail App Password, sender address, and recipient email.',
+                'Email provider rejected the message: '.$exception->getMessage(),
                 'email_provider_failed',
                 $exception,
             );

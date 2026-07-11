@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Communication;
 use BackedEnum;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,11 @@ class MessageHistory extends Page
     protected static ?string $title = 'Message History';
 
     protected string $view = 'filament.pages.message-history';
+
+    /**
+     * @var array<int, bool>
+     */
+    public array $selectedMessages = [];
 
     public static function canAccess(): bool
     {
@@ -38,5 +44,54 @@ class MessageHistory extends Page
             ->limit(30)
             ->get()
             ->all();
+    }
+
+    public function deleteMessage(int $messageId): void
+    {
+        $message = Communication::query()
+            ->whereIn('communication_type', ['email', 'sms'])
+            ->find($messageId);
+
+        if (! $message) {
+            return;
+        }
+
+        $message->delete();
+        unset($this->selectedMessages[$messageId]);
+
+        Notification::make()
+            ->title('Message history deleted')
+            ->success()
+            ->send();
+    }
+
+    public function deleteSelected(): void
+    {
+        $ids = collect($this->selectedMessages)
+            ->filter()
+            ->keys()
+            ->map(fn (int|string $id): int => (int) $id)
+            ->all();
+
+        if ($ids === []) {
+            Notification::make()
+                ->title('Select at least one message first')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        Communication::query()
+            ->whereIn('communication_type', ['email', 'sms'])
+            ->whereKey($ids)
+            ->delete();
+
+        $this->selectedMessages = [];
+
+        Notification::make()
+            ->title('Selected message history deleted')
+            ->success()
+            ->send();
     }
 }
