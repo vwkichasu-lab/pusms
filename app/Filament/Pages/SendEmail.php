@@ -43,7 +43,7 @@ class SendEmail extends Page
      * @var array<string, mixed>
      */
     public array $data = [
-        'delivery_provider' => 'smtp',
+        'delivery_provider' => 'gmail',
         'recipient_group' => 'students',
         'send_all' => true,
         'send_all_sponsors' => true,
@@ -60,29 +60,22 @@ class SendEmail extends Page
             ->statePath('data')
             ->components([
                 Section::make('Email Message')
-                    ->description('Send from the scholarship Gmail account configured on the server, or open Gmail Compose as a manual backup.')
+                    ->description('Send from the connected scholarship Gmail account. The connection stays active until it is disconnected in Gmail Settings.')
                     ->schema([
                         Select::make('delivery_provider')
                             ->label('Send From')
                             ->options(fn (): array => [
-                                'smtp' => 'Scholarship Gmail - system send',
-                                'gmail' => 'Connected Gmail API - advanced',
+                                'gmail' => 'Connected Scholarship Gmail',
                             ])
-                            ->default('smtp')
+                            ->default('gmail')
                             ->required()
                             ->live(),
                         Select::make('gmail_account_id')
                             ->label('Gmail Account')
-                            ->options(fn (): array => GmailAccount::query()
-                                ->where('user_id', Auth::id())
-                                ->where('status', 'connected')
-                                ->latest('last_used_at')
-                                ->latest()
-                                ->pluck('email', 'id')
-                                ->all())
+                            ->options(fn (): array => $this->connectedGmailAccounts()->pluck('email', 'id')->all())
                             ->default(fn (): ?int => $this->defaultGmailAccountId())
                             ->searchable()
-                            ->visible(fn (Get $get): bool => $get('delivery_provider') === 'gmail'),
+                            ->required(),
                         Select::make('recipient_group')
                             ->label('Send To')
                             ->options([
@@ -124,20 +117,19 @@ class SendEmail extends Page
     {
         $state = $this->form->getState();
         $deliveryProvider = $state['delivery_provider'] ?? 'gmail';
-        $gmailAccountId = $deliveryProvider === 'gmail'
-            ? ($state['gmail_account_id'] ?? $this->defaultGmailAccountId())
-            : null;
+        $gmailAccountId = $state['gmail_account_id'] ?? $this->defaultGmailAccountId();
 
-        if ($deliveryProvider === 'gmail' && ! GmailAccount::query()->where('user_id', Auth::id())->where('status', 'connected')->whereKey($gmailAccountId)->exists()) {
+        if (! $gmailAccountId || ! $this->connectedGmailAccounts()->whereKey($gmailAccountId)->exists()) {
             Notification::make()
-                ->title('Using scholarship Gmail system send instead')
-                ->body('Connected Gmail API is not ready, so PUSMS will send through the configured scholarship Gmail SMTP account.')
-                ->warning()
+                ->title('Connect Gmail first')
+                ->body('Go to Gmail Settings and connect the scholarship Gmail account before sending email.')
+                ->danger()
                 ->send();
 
-            $deliveryProvider = 'smtp';
-            $gmailAccountId = null;
+            return;
         }
+
+        $deliveryProvider = 'gmail';
 
         $recipientGroup = $state['recipient_group'] ?? 'students';
         $students = in_array($recipientGroup, ['students', 'students_and_sponsors'], true)
@@ -322,12 +314,17 @@ class SendEmail extends Page
 
     private function defaultGmailAccountId(): ?int
     {
-        return GmailAccount::query()
-            ->where('user_id', Auth::id())
-            ->where('status', 'connected')
+        return $this->connectedGmailAccounts()
             ->latest('last_used_at')
             ->latest()
             ->value('id');
+    }
+
+    private function connectedGmailAccounts(): Builder
+    {
+        return GmailAccount::query()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at');
     }
 
     /**
