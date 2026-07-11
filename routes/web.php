@@ -7,6 +7,7 @@ use App\Http\Controllers\ScholarshipHistoryController;
 use App\Http\Controllers\ScholarshipLetterController;
 use App\Services\StudentCleanupService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -38,5 +39,30 @@ Route::post('/maintenance/clear-students', function (Request $request, StudentCl
     return response()->json([
         'cleared' => true,
         'counts' => $cleanup->clearAllStudents(),
+    ]);
+});
+
+Route::post('/maintenance/send-test-email', function (Request $request) {
+    $token = config('notifications.maintenance_token');
+
+    abort_if(blank($token) || ! hash_equals($token, (string) $request->bearerToken()), 404);
+
+    $validated = $request->validate([
+        'to' => ['required', 'email'],
+        'subject' => ['nullable', 'string', 'max:255'],
+        'message' => ['nullable', 'string', 'max:5000'],
+    ]);
+
+    Mail::raw(
+        $validated['message'] ?? 'This is a PUSMS test email sent through the scholarship Gmail SMTP account.',
+        function ($mail) use ($validated): void {
+            $mail->to($validated['to'])
+                ->subject($validated['subject'] ?? 'PUSMS Test Email');
+        },
+    );
+
+    return response()->json([
+        'sent' => true,
+        'to' => $validated['to'],
     ]);
 });
