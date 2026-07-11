@@ -6,6 +6,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScholarshipHistoryController;
 use App\Http\Controllers\ScholarshipLetterController;
 use App\Services\StudentCleanupService;
+use App\Models\GmailAccount;
+use App\Services\GmailOAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -70,6 +72,47 @@ Route::post('/maintenance/send-test-email', function (Request $request) {
 
     return response()->json([
         'sent' => true,
+        'to' => $validated['to'],
+    ]);
+});
+
+Route::post('/maintenance/send-gmail-api-test', function (Request $request, GmailOAuthService $gmail) {
+    $token = config('notifications.maintenance_token');
+
+    abort_if(blank($token) || ! hash_equals($token, (string) $request->bearerToken()), 404);
+
+    $validated = $request->validate([
+        'to' => ['required', 'email'],
+        'subject' => ['nullable', 'string', 'max:255'],
+        'message' => ['nullable', 'string', 'max:5000'],
+    ]);
+
+    $account = GmailAccount::query()
+        ->where('status', 'connected')
+        ->latest('last_used_at')
+        ->latest()
+        ->first();
+
+    if (! $account) {
+        return response()->json([
+            'sent' => false,
+            'error' => 'No connected Gmail API account was found. Connect Gmail again in Gmail Settings.',
+        ], 422);
+    }
+
+    try {
+        $gmail->sendTestEmail($account, $validated['to']);
+    } catch (Throwable $exception) {
+        return response()->json([
+            'sent' => false,
+            'gmail_account' => $account->email,
+            'error' => $exception->getMessage(),
+        ], 422);
+    }
+
+    return response()->json([
+        'sent' => true,
+        'gmail_account' => $account->email,
         'to' => $validated['to'],
     ]);
 });

@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'maintenance/clear-students',
             'maintenance/send-test-email',
+            'maintenance/send-gmail-api-test',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
