@@ -254,11 +254,7 @@
                                 <span style="font-weight:800; color:#111827;">{{ $message->subject ?: 'No subject' }}</span>
                                 <span style="color:#64748b;">- {{ str($message->message)->squish()->limit(120) }}</span>
                                 <span class="pusms-mailbox-pill">{{ str($message->status)->headline() }}</span>
-                                @if ($message->communication_type === 'whatsapp')
-                                    <span class="pusms-mailbox-pill">Prepared {{ $prepared }}</span>
-                                @else
-                                    <span class="pusms-mailbox-pill">Sent {{ $sent }}</span>
-                                @endif
+                                <span class="pusms-mailbox-pill">Sent {{ $sent }}</span>
                                 @if ($failed)
                                     <span class="pusms-mailbox-pill">Failed {{ $failed }}</span>
                                 @endif
@@ -307,11 +303,7 @@
                                                     <td>{{ str($recipient->delivery_status)->headline() }}</td>
                                                     <td>{{ $recipient->sent_at?->format('M j, Y g:i A') ?: $recipient->failed_at?->format('M j, Y g:i A') ?: '-' }}</td>
                                                     <td>
-                                                        @if ($recipient->channel === 'whatsapp' && filled($recipient->provider_response['url'] ?? null))
-                                                            <a href="{{ $recipient->provider_response['url'] }}" target="_blank" style="color:#005eea; font-weight:800;">Open WhatsApp</a>
-                                                        @else
-                                                            {{ $recipient->failure_reason ?: '-' }}
-                                                        @endif
+                                                        {{ $recipient->failure_reason ?: '-' }}
                                                     </td>
                                                 </tr>
                                             @endforeach

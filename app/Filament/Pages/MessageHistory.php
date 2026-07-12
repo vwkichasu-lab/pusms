@@ -33,7 +33,7 @@ class MessageHistory extends Page
     {
         $user = Auth::user();
 
-        return (bool) ($user?->can('send email') || $user?->can('use email and whatsapp pages'));
+        return (bool) ($user?->can('send email') || $user?->can('use email pages'));
     }
 
     /**
@@ -43,7 +43,7 @@ class MessageHistory extends Page
     {
         return Communication::query()
             ->with(['creator', 'gmailAccount', 'recipients.student', 'recipients.sponsor'])
-            ->whereIn('communication_type', ['email', 'whatsapp'])
+            ->where('communication_type', 'email')
             ->latest()
             ->limit(30)
             ->get()
@@ -53,7 +53,7 @@ class MessageHistory extends Page
     public function deleteMessage(int $messageId): void
     {
         $message = Communication::query()
-            ->whereIn('communication_type', ['email', 'whatsapp'])
+            ->where('communication_type', 'email')
             ->find($messageId);
 
         if (! $message) {
@@ -87,7 +87,7 @@ class MessageHistory extends Page
         }
 
         Communication::query()
-            ->whereIn('communication_type', ['email', 'whatsapp'])
+            ->where('communication_type', 'email')
             ->whereKey($ids)
             ->delete();
 

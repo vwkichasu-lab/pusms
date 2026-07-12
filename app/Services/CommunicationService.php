@@ -69,9 +69,6 @@ class CommunicationService
      */
     private function channels(string $type): array
     {
-        return match ($type) {
-            'whatsapp' => ['whatsapp'],
-            default => ['email'],
-        };
+        return ['email'];
     }
 }

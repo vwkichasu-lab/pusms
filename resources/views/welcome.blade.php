@@ -239,7 +239,7 @@
                         <div class="module">Student Records</div>
                         <div class="module">Scholarship Assignments</div>
                         <div class="module">Renewal Workflow</div>
-                        <div class="module">Email and WhatsApp Communication</div>
+                        <div class="module">Email Communication</div>
                         <div class="module">Reports and Exports</div>
                         <div class="module">Roles and Audit Logs</div>
                     </div>

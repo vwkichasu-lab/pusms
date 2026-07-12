@@ -48,7 +48,7 @@ class PusmsStatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-flag', IconPosition::Before)
                 ->color('primary'),
             Stat::make('Messages Sent', $hasCommunicationRecipients ? CommunicationRecipient::query()->where('delivery_status', 'sent')->count() : 0)
-                ->description('Email and WhatsApp activity metrics')
+                ->description('Email delivery metrics')
                 ->descriptionIcon('heroicon-m-paper-airplane', IconPosition::Before)
                 ->color('primary'),
         ];
