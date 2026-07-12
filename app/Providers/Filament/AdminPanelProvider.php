@@ -119,7 +119,7 @@ class AdminPanelProvider extends PanelProvider
             <div class="pusms-ai-assistant" id="pusmsAiAssistant">
                 <div class="pusms-ai-bubble" id="pusmsAiBubble" hidden>
                     <button type="button" class="pusms-ai-tip-close" id="pusmsAiTipClose" aria-label="Hide assistant tip">x</button>
-                    <span>Need help? Chat with us!</span>
+                    <span>Send With Me</span>
                 </div>
                 <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle" aria-label="Send with Me">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -133,7 +133,7 @@ class AdminPanelProvider extends PanelProvider
                         <button type="button" id="pusmsAiClose">x</button>
                     </div>
                     <div class="pusms-ai-body" id="pusmsAiBody">
-                        <div class="pusms-ai-msg">What do you want to send today?</div>
+                        <div class="pusms-ai-msg">What do you want to send today? Describe the email or SMS and I will generate it with placeholders like {{student_name}}.</div>
                     </div>
                     <form id="pusmsAiForm" class="pusms-ai-form">
                         <textarea id="pusmsAiInput" placeholder="Describe the email or SMS you want..." rows="3"></textarea>
@@ -333,8 +333,18 @@ class AdminPanelProvider extends PanelProvider
                         hidePrompt();
                     });
                     let drag = null;
+                    let suppressNextClick = false;
+                    const openPanel = () => {
+                        panel.hidden = false;
+                        hidePrompt();
+                        input?.focus();
+                    };
+                    const togglePanel = () => {
+                        panel.hidden ? openPanel() : panel.hidden = true;
+                    };
                     const startDrag = (event) => {
                         if (event.target === tipClose) return;
+                        if (event.target.closest('#pusmsAiPanel')) return;
                         const rect = assistant.getBoundingClientRect();
                         drag = {
                             pointerId: event.pointerId,
@@ -365,15 +375,24 @@ class AdminPanelProvider extends PanelProvider
                         drag = null;
                         const rect = assistant.getBoundingClientRect();
                         localStorage.setItem(positionKey, JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
-                        if (!moved && event.target.closest('#pusmsAiToggle')) {
-                            panel.hidden = !panel.hidden;
-                            if (!panel.hidden) {
-                                hidePrompt();
-                            }
+                        suppressNextClick = moved;
+                        if (moved) {
+                            window.setTimeout(() => suppressNextClick = false, 150);
                         }
                     };
                     [toggle, bubble].filter(Boolean).forEach((handle) => {
                         handle.addEventListener('pointerdown', startDrag);
+                    });
+                    toggle.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        if (suppressNextClick) return;
+                        togglePanel();
+                    });
+                    bubble?.addEventListener('click', (event) => {
+                        if (event.target === tipClose) return;
+                        event.preventDefault();
+                        if (suppressNextClick) return;
+                        openPanel();
                     });
                     assistant.addEventListener('pointermove', moveDrag);
                     assistant.addEventListener('pointerup', endDrag);
