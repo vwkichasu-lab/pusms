@@ -145,7 +145,10 @@ Route::post('/maintenance/migrate', function (Request $request) {
     abort_if(blank($token) || ! hash_equals($token, (string) $request->bearerToken()), 404);
 
     try {
+        Artisan::call('optimize:clear');
+        $clearOutput = Artisan::output();
         Artisan::call('migrate', ['--force' => true]);
+        $migrateOutput = Artisan::output();
     } catch (Throwable $exception) {
         return response()->json([
             'migrated' => false,
@@ -155,7 +158,7 @@ Route::post('/maintenance/migrate', function (Request $request) {
 
     return response()->json([
         'migrated' => true,
-        'output' => Artisan::output(),
+        'output' => $clearOutput.$migrateOutput,
     ]);
 });
 
