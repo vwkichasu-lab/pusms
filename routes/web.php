@@ -171,6 +171,6 @@ Route::post('/maintenance/last-error', function (Request $request) {
     }
 
     return response()->json([
-        'tail' => substr(File::get($path), -12000),
+        'tail' => substr(File::get($path), -60000),
     ]);
 });
