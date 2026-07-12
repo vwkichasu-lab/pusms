@@ -297,20 +297,23 @@ class AdminPanelProvider extends PanelProvider
     private function formDraftMarkup(): string
     {
         return <<<'HTML'
-            <button type="button" id="pusmsClearFormDraft" class="pusms-clear-draft" hidden>Clear saved form</button>
             <style>
+                .pusms-clear-draft-row {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 1rem;
+                    padding-top: .75rem;
+                    border-top: 1px solid #e2e8f0;
+                }
+
                 .pusms-clear-draft {
-                    position: fixed;
-                    left: 18px;
-                    bottom: 18px;
-                    z-index: 60;
                     border: 1px solid #cbd5e1;
-                    border-radius: 999px;
+                    border-radius: .5rem;
                     background: #ffffff;
                     color: #082f63;
                     padding: 8px 12px;
                     font-weight: 800;
-                    box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
+                    cursor: pointer;
                 }
 
                 html.dark .pusms-clear-draft {
@@ -321,12 +324,21 @@ class AdminPanelProvider extends PanelProvider
             </style>
             <script>
                 (() => {
-                    const storageKey = 'pusms-form-draft:' + window.location.pathname;
-                    const clearButton = document.getElementById('pusmsClearFormDraft');
                     const ignoredTypes = new Set(['hidden', 'password', 'file', 'submit', 'button', 'reset', 'search']);
                     let isRestoring = false;
 
-                    const controls = () => Array.from(document.querySelectorAll('main input, main textarea, main select'))
+                    const forms = () => Array.from(document.querySelectorAll('main form'));
+
+                    const storageKey = (form) => {
+                        if (!form.dataset.pusmsDraftKey) {
+                            const index = forms().indexOf(form);
+                            form.dataset.pusmsDraftKey = 'pusms-form-draft:' + window.location.pathname + ':form-' + index;
+                        }
+
+                        return form.dataset.pusmsDraftKey;
+                    };
+
+                    const controls = (form) => Array.from(form.querySelectorAll('input, textarea, select'))
                         .filter((control) => {
                             const type = (control.getAttribute('type') || '').toLowerCase();
                             return !ignoredTypes.has(type)
@@ -335,10 +347,10 @@ class AdminPanelProvider extends PanelProvider
                                 && !control.closest('[data-no-draft]');
                         });
 
-                    const currentDraft = () => {
+                    const currentDraft = (form) => {
                         const draft = {};
 
-                        controls().forEach((control) => {
+                        controls(form).forEach((control) => {
                             const key = control.name || control.id;
 
                             if (control.type === 'checkbox') {
@@ -370,14 +382,20 @@ class AdminPanelProvider extends PanelProvider
                         return draft;
                     };
 
-                    const saveDraft = () => {
+                    const toggleClearButton = (form) => {
+                        const button = form.querySelector('[data-pusms-clear-draft]');
+                        if (!button) return;
+
+                        const raw = localStorage.getItem(storageKey(form));
+                        button.closest('.pusms-clear-draft-row').hidden = !raw || raw === '{}';
+                    };
+
+                    const saveDraft = (form) => {
                         if (isRestoring) return;
 
-                        const draft = currentDraft();
-                        localStorage.setItem(storageKey, JSON.stringify(draft));
-                        if (clearButton && Object.keys(draft).length > 0) {
-                            clearButton.hidden = false;
-                        }
+                        const draft = currentDraft(form);
+                        localStorage.setItem(storageKey(form), JSON.stringify(draft));
+                        toggleClearButton(form);
                     };
 
                     const applyValue = (control, value) => {
@@ -403,20 +421,20 @@ class AdminPanelProvider extends PanelProvider
                         }
                     };
 
-                    const restoreDraft = () => {
-                        const raw = localStorage.getItem(storageKey);
+                    const restoreDraft = (form) => {
+                        const raw = localStorage.getItem(storageKey(form));
                         if (!raw) return;
 
                         let draft = {};
                         try {
                             draft = JSON.parse(raw);
                         } catch (error) {
-                            localStorage.removeItem(storageKey);
+                            localStorage.removeItem(storageKey(form));
                             return;
                         }
 
                         isRestoring = true;
-                        controls().forEach((control) => {
+                        controls(form).forEach((control) => {
                             const key = control.name || control.id;
                             if (!(key in draft)) return;
 
@@ -426,24 +444,13 @@ class AdminPanelProvider extends PanelProvider
                         });
                         isRestoring = false;
 
-                        if (clearButton) {
-                            clearButton.hidden = Object.keys(draft).length === 0;
-                        }
+                        toggleClearButton(form);
                     };
 
-                    const bindDraftSaver = () => {
-                        controls().forEach((control) => {
-                            if (control.dataset.pusmsDraftBound) return;
-                            control.dataset.pusmsDraftBound = '1';
-                            control.addEventListener('input', saveDraft);
-                            control.addEventListener('change', saveDraft);
-                        });
-                    };
+                    const clearFormDraft = (form) => {
+                        localStorage.removeItem(storageKey(form));
 
-                    clearButton?.addEventListener('click', () => {
-                        localStorage.removeItem(storageKey);
-                        clearButton.hidden = true;
-                        controls().forEach((control) => {
+                        controls(form).forEach((control) => {
                             if (control.type === 'checkbox' || control.type === 'radio') {
                                 control.checked = false;
                             } else if (control.multiple) {
@@ -455,11 +462,46 @@ class AdminPanelProvider extends PanelProvider
                             control.dispatchEvent(new Event('input', { bubbles: true }));
                             control.dispatchEvent(new Event('change', { bubbles: true }));
                         });
-                    });
+
+                        toggleClearButton(form);
+                    };
+
+                    const ensureClearButton = (form) => {
+                        if (form.dataset.pusmsDraftClearReady || controls(form).length === 0) return;
+                        form.dataset.pusmsDraftClearReady = '1';
+
+                        const row = document.createElement('div');
+                        row.className = 'pusms-clear-draft-row';
+                        row.hidden = true;
+
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'pusms-clear-draft';
+                        button.dataset.pusmsClearDraft = '1';
+                        button.textContent = 'Clear saved form';
+                        button.addEventListener('click', () => clearFormDraft(form));
+
+                        row.appendChild(button);
+                        form.appendChild(row);
+                        toggleClearButton(form);
+                    };
+
+                    const bindDraftSaver = () => {
+                        forms().forEach((form) => {
+                            ensureClearButton(form);
+
+                            controls(form).forEach((control) => {
+                            if (control.dataset.pusmsDraftBound) return;
+                            control.dataset.pusmsDraftBound = '1';
+                                control.addEventListener('input', () => saveDraft(form));
+                                control.addEventListener('change', () => saveDraft(form));
+                            });
+                        });
+                    };
 
                     const boot = () => {
                         bindDraftSaver();
-                        window.setTimeout(restoreDraft, 250);
+                        window.setTimeout(() => forms().forEach((form) => restoreDraft(form)), 250);
                     };
 
                     boot();
