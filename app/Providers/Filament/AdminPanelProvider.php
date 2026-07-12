@@ -109,6 +109,10 @@ class AdminPanelProvider extends PanelProvider
         return <<<'HTML'
             <div class="pusms-login-loader" id="pusmsLoginLoader" aria-label="Loading Pentecost University Scholarship System">
                 <div class="pusms-login-loader-inner">
+                    <div class="pusms-typing-mark" aria-label="UNIVERSITY A+">
+                        <span class="university">UNIVERSITY</span>
+                        <span class="grade">A+</span>
+                    </div>
                     <div class="pusms-loader-stage" aria-hidden="true">
                         <div class="pusms-loader-ring"></div>
                         <span class="pusms-loader-spark one"></span>
@@ -153,6 +157,28 @@ class AdminPanelProvider extends PanelProvider
                     position: relative;
                     display: grid;
                     place-items: center;
+                }
+
+                .pusms-typing-mark {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: .4rem;
+                    max-width: 13ch;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    border-right: 3px solid #f3b51b;
+                    font-size: clamp(1.15rem, 4vw, 1.7rem);
+                    font-weight: 950;
+                    letter-spacing: .02em;
+                    animation: pusmsTypingMark 2.2s steps(13, end) .25s both, pusmsTypingCaret .75s step-end infinite;
+                }
+
+                .pusms-typing-mark .university {
+                    color: #053a82;
+                }
+
+                .pusms-typing-mark .grade {
+                    color: #f3b51b;
                 }
 
                 .pusms-loader-stage img {
@@ -263,6 +289,15 @@ class AdminPanelProvider extends PanelProvider
 
                 @keyframes pusmsLoadBar {
                     to { width: 100%; }
+                }
+
+                @keyframes pusmsTypingMark {
+                    from { width: 0; }
+                    to { width: 13ch; }
+                }
+
+                @keyframes pusmsTypingCaret {
+                    50% { border-color: transparent; }
                 }
             </style>
             <script>

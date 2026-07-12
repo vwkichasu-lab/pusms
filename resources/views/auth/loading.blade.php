@@ -43,6 +43,28 @@
             place-items: center;
         }
 
+        .typing-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            max-width: 13ch;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid var(--gold);
+            font-size: clamp(1.15rem, 4vw, 1.7rem);
+            font-weight: 950;
+            letter-spacing: .02em;
+            animation: typingMark 2.2s steps(13, end) .25s both, typingCaret .75s step-end infinite;
+        }
+
+        .typing-mark .university {
+            color: var(--blue);
+        }
+
+        .typing-mark .grade {
+            color: var(--gold);
+        }
+
         .logo-ring {
             position: absolute;
             inset: 8px;
@@ -196,10 +218,30 @@
                 width: 100%;
             }
         }
+
+        @keyframes typingMark {
+            from {
+                width: 0;
+            }
+            to {
+                width: 13ch;
+            }
+        }
+
+        @keyframes typingCaret {
+            50% {
+                border-color: transparent;
+            }
+        }
     </style>
 </head>
 <body>
     <main class="loader" aria-label="Loading Pentecost University Scholarship Management System">
+        <div class="typing-mark" aria-label="UNIVERSITY A+">
+            <span class="university">UNIVERSITY</span>
+            <span class="grade">A+</span>
+        </div>
+
         <div class="logo-stage" aria-hidden="true">
             <div class="logo-ring"></div>
             <span class="spark one"></span>
