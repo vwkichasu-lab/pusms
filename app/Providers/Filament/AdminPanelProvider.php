@@ -117,7 +117,16 @@ class AdminPanelProvider extends PanelProvider
 
         return <<<HTML
             <div class="pusms-ai-assistant" id="pusmsAiAssistant">
-                <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle">Send with Me</button>
+                <div class="pusms-ai-bubble" id="pusmsAiBubble">
+                    <button type="button" class="pusms-ai-tip-close" id="pusmsAiTipClose" aria-label="Hide assistant tip">x</button>
+                    <span>Need help? Chat with us!</span>
+                </div>
+                <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle" aria-label="Send with Me">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M7.5 17.5 4 20l1.1-4A8 8 0 1 1 7.5 17.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        <path d="M8.2 11.2h.01M12 11.2h.01M15.8 11.2h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                    </svg>
+                </button>
                 <div class="pusms-ai-panel" id="pusmsAiPanel" hidden>
                     <div class="pusms-ai-head">
                         <strong>PUSMS AI</strong>
@@ -138,18 +147,72 @@ class AdminPanelProvider extends PanelProvider
                     right: 22px;
                     bottom: 22px;
                     z-index: 61;
+                    display: grid;
+                    justify-items: end;
+                    gap: 8px;
+                    touch-action: none;
+                    user-select: none;
                 }
 
                 .pusms-ai-toggle {
-                    min-width: 112px;
-                    height: 56px;
+                    width: 64px;
+                    height: 64px;
                     padding-inline: 16px;
                     border-radius: 999px;
-                    border: 1px solid #082f63;
-                    background: #082f63;
+                    border: 4px solid #ffffff;
+                    background: #0b2c53;
                     color: #ffffff;
+                    box-shadow: 0 10px 28px rgba(15, 23, 42, .32);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: grab;
+                }
+
+                .pusms-ai-toggle:active {
+                    cursor: grabbing;
+                }
+
+                .pusms-ai-toggle svg {
+                    width: 34px;
+                    height: 34px;
+                }
+
+                .pusms-ai-bubble {
+                    position: relative;
+                    margin-right: 36px;
+                    max-width: 250px;
+                    border-radius: 9px;
+                    background: #10c98b;
+                    color: #ffffff;
+                    padding: 16px 20px;
                     font-weight: 900;
-                    box-shadow: 0 8px 24px rgba(15, 23, 42, .22);
+                    box-shadow: 0 12px 30px rgba(15, 23, 42, .2);
+                    cursor: grab;
+                }
+
+                .pusms-ai-bubble::after {
+                    content: "";
+                    position: absolute;
+                    right: 28px;
+                    bottom: -12px;
+                    width: 0;
+                    height: 0;
+                    border-left: 12px solid transparent;
+                    border-right: 12px solid transparent;
+                    border-top: 12px solid #10c98b;
+                }
+
+                .pusms-ai-tip-close {
+                    position: absolute;
+                    top: 3px;
+                    right: 7px;
+                    border: 0;
+                    background: transparent;
+                    color: #ffffff;
+                    font-size: 18px;
+                    font-weight: 900;
+                    cursor: pointer;
                 }
 
                 .pusms-ai-panel {
@@ -227,14 +290,79 @@ class AdminPanelProvider extends PanelProvider
             <script>
                 (() => {
                     const toggle = document.getElementById('pusmsAiToggle');
+                    const assistant = document.getElementById('pusmsAiAssistant');
+                    const bubble = document.getElementById('pusmsAiBubble');
+                    const tipClose = document.getElementById('pusmsAiTipClose');
                     const panel = document.getElementById('pusmsAiPanel');
                     const close = document.getElementById('pusmsAiClose');
                     const form = document.getElementById('pusmsAiForm');
                     const input = document.getElementById('pusmsAiInput');
                     const body = document.getElementById('pusmsAiBody');
-                    if (!toggle || !panel || !form || toggle.dataset.ready) return;
+                    if (!toggle || !assistant || !panel || !form || toggle.dataset.ready) return;
                     toggle.dataset.ready = '1';
-                    toggle.addEventListener('click', () => panel.hidden = !panel.hidden);
+                    const positionKey = 'pusms-ai-position';
+                    const tipKey = 'pusms-ai-tip-hidden';
+                    const saved = localStorage.getItem(positionKey);
+                    if (saved) {
+                        try {
+                            const pos = JSON.parse(saved);
+                            assistant.style.left = pos.left + 'px';
+                            assistant.style.top = pos.top + 'px';
+                            assistant.style.right = 'auto';
+                            assistant.style.bottom = 'auto';
+                        } catch (error) {}
+                    }
+                    if (localStorage.getItem(tipKey) === '1' && bubble) {
+                        bubble.hidden = true;
+                    }
+                    tipClose?.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        if (bubble) bubble.hidden = true;
+                        localStorage.setItem(tipKey, '1');
+                    });
+                    let drag = null;
+                    const startDrag = (event) => {
+                        if (event.target === tipClose) return;
+                        const rect = assistant.getBoundingClientRect();
+                        drag = {
+                            pointerId: event.pointerId,
+                            startX: event.clientX,
+                            startY: event.clientY,
+                            left: rect.left,
+                            top: rect.top,
+                            moved: false,
+                        };
+                        assistant.setPointerCapture?.(event.pointerId);
+                    };
+                    const moveDrag = (event) => {
+                        if (!drag || drag.pointerId !== event.pointerId) return;
+                        const dx = event.clientX - drag.startX;
+                        const dy = event.clientY - drag.startY;
+                        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
+                        const rect = assistant.getBoundingClientRect();
+                        const nextLeft = Math.max(8, Math.min(window.innerWidth - rect.width - 8, drag.left + dx));
+                        const nextTop = Math.max(8, Math.min(window.innerHeight - rect.height - 8, drag.top + dy));
+                        assistant.style.left = nextLeft + 'px';
+                        assistant.style.top = nextTop + 'px';
+                        assistant.style.right = 'auto';
+                        assistant.style.bottom = 'auto';
+                    };
+                    const endDrag = (event) => {
+                        if (!drag || drag.pointerId !== event.pointerId) return;
+                        const moved = drag.moved;
+                        drag = null;
+                        const rect = assistant.getBoundingClientRect();
+                        localStorage.setItem(positionKey, JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
+                        if (!moved && event.target.closest('#pusmsAiToggle')) {
+                            panel.hidden = !panel.hidden;
+                        }
+                    };
+                    [toggle, bubble].filter(Boolean).forEach((handle) => {
+                        handle.addEventListener('pointerdown', startDrag);
+                    });
+                    assistant.addEventListener('pointermove', moveDrag);
+                    assistant.addEventListener('pointerup', endDrag);
+                    assistant.addEventListener('pointercancel', endDrag);
                     close?.addEventListener('click', () => panel.hidden = true);
                     const add = (text, cls = '') => {
                         const div = document.createElement('div');
