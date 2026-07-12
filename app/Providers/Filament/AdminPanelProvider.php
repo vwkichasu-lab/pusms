@@ -102,6 +102,17 @@ class AdminPanelProvider extends PanelProvider
 
     private function assistantMarkup(): string
     {
+        if (! request()->is([
+            'admin/send-email',
+            'admin/send-sms',
+            'admin/message-history',
+            'admin/team-messages',
+            'admin/gmail-settings',
+            'admin/gmail-inbox',
+        ])) {
+            return '';
+        }
+
         $csrf = csrf_token();
 
         return <<<HTML
@@ -113,11 +124,11 @@ class AdminPanelProvider extends PanelProvider
                         <button type="button" id="pusmsAiClose">x</button>
                     </div>
                     <div class="pusms-ai-body" id="pusmsAiBody">
-                        <div class="pusms-ai-msg">Ask me: "where is students", "draft email", "how to send SMS", "go to reports", or "what is this page".</div>
+                        <div class="pusms-ai-msg">Tell me the message you want. Example: "Write an email inviting PU Bursary students to a meeting on Friday at 10am." I will generate the subject and message with the right placeholders.</div>
                     </div>
                     <form id="pusmsAiForm" class="pusms-ai-form">
-                        <textarea id="pusmsAiInput" placeholder="Ask about PUSMS..." rows="3"></textarea>
-                        <button type="submit">Send</button>
+                        <textarea id="pusmsAiInput" placeholder="Describe the email or SMS you want..." rows="3"></textarea>
+                        <button type="submit">Generate Message</button>
                     </form>
                 </div>
             </div>
@@ -251,14 +262,27 @@ class AdminPanelProvider extends PanelProvider
                             });
                             const json = await response.json();
                             pending.textContent = json.answer || 'I could not find an answer.';
-                            if (json.url) {
-                                const link = document.createElement('a');
-                                link.href = json.url;
-                                link.textContent = 'Open page';
-                                link.style.cssText = 'display:inline-block;margin-top:8px;color:#005eea;font-weight:800;text-decoration:underline;';
+                            if (json.generated_message) {
+                                const useButton = document.createElement('button');
+                                useButton.type = 'button';
+                                useButton.textContent = 'Use in form';
+                                useButton.style.cssText = 'display:inline-block;margin-top:8px;border:0;border-radius:8px;padding:8px 10px;background:#005eea;color:#fff;font-weight:800;';
+                                useButton.addEventListener('click', () => {
+                                    const messageField = document.querySelector('textarea[name="data[message]"], textarea[id$="-message"], textarea');
+                                    const subjectField = document.querySelector('input[name="data[subject]"], input[id$="-subject"]');
+                                    if (messageField) {
+                                        messageField.value = json.generated_message;
+                                        messageField.dispatchEvent(new Event('input', { bubbles: true }));
+                                        messageField.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                    if (subjectField && json.subject) {
+                                        subjectField.value = json.subject;
+                                        subjectField.dispatchEvent(new Event('input', { bubbles: true }));
+                                        subjectField.dispatchEvent(new Event('change', { bubbles: true }));
+                                    }
+                                });
                                 pending.appendChild(document.createTextNode('\\n'));
-                                pending.appendChild(link);
-                                if (json.navigate) window.location.href = json.url;
+                                pending.appendChild(useButton);
                             }
                         } catch (error) {
                             pending.textContent = 'The assistant could not respond. Please try again.';

@@ -71,8 +71,8 @@ class SendSms extends Page
                             ->required()
                             ->rows(6)
                             ->maxLength((int) config('notifications.sms.max_length', 918))
-                            ->placeholder('Dear {{name}}, ...')
-                            ->helperText('For bulk SMS, write Dear {{name}} and PUSMS will replace it with each student or sponsor name.')
+                            ->placeholder('Dear {{student_name}}, ...')
+                            ->helperText('Use {{student_name}} for students, {{contact_person}} for sponsor contacts, or {{name}} for either recipient type.')
                             ->columnSpanFull(),
                     ]),
                 Section::make('Students')

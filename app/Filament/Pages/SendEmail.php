@@ -118,8 +118,8 @@ class SendEmail extends Page
                         Textarea::make('message')
                             ->required()
                             ->rows(10)
-                            ->placeholder('Dear {{name}}, ...')
-                            ->helperText('For bulk messages, write Dear {{name}} and PUSMS will replace it with each student or sponsor name.')
+                            ->placeholder('Dear {{student_name}}, ...')
+                            ->helperText('Use {{student_name}} for students, {{contact_person}} for sponsor contacts, or {{name}} for either recipient type.')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
