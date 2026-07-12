@@ -163,14 +163,23 @@ class AdminPanelProvider extends PanelProvider
                     display: inline-flex;
                     align-items: center;
                     gap: .4rem;
-                    max-width: 13ch;
+                    width: 14ch;
                     overflow: hidden;
                     white-space: nowrap;
-                    border-right: 3px solid #f3b51b;
                     font-size: clamp(1.15rem, 4vw, 1.7rem);
                     font-weight: 950;
                     letter-spacing: .02em;
-                    animation: pusmsTypingMark 2.2s steps(13, end) .25s both, pusmsTypingCaret .75s step-end infinite;
+                    position: relative;
+                    animation: pusmsTypingMark 5.6s steps(14, end) .25s infinite;
+                }
+
+                .pusms-typing-mark::after {
+                    content: "_";
+                    position: absolute;
+                    right: -1.1ch;
+                    bottom: -.08em;
+                    color: #f3b51b;
+                    animation: pusmsTypingCaret .75s step-end infinite;
                 }
 
                 .pusms-typing-mark .university {
@@ -292,12 +301,13 @@ class AdminPanelProvider extends PanelProvider
                 }
 
                 @keyframes pusmsTypingMark {
-                    from { width: 0; }
-                    to { width: 13ch; }
+                    0%, 12% { width: 0; }
+                    42%, 62% { width: 14ch; }
+                    92%, 100% { width: 0; }
                 }
 
                 @keyframes pusmsTypingCaret {
-                    50% { border-color: transparent; }
+                    50% { opacity: 0; }
                 }
             </style>
             <script>

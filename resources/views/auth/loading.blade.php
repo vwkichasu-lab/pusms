@@ -47,14 +47,23 @@
             display: inline-flex;
             align-items: center;
             gap: .4rem;
-            max-width: 13ch;
+            width: 14ch;
             overflow: hidden;
             white-space: nowrap;
-            border-right: 3px solid var(--gold);
             font-size: clamp(1.15rem, 4vw, 1.7rem);
             font-weight: 950;
             letter-spacing: .02em;
-            animation: typingMark 2.2s steps(13, end) .25s both, typingCaret .75s step-end infinite;
+            position: relative;
+            animation: typingMark 5.6s steps(14, end) .25s infinite;
+        }
+
+        .typing-mark::after {
+            content: "_";
+            position: absolute;
+            right: -1.1ch;
+            bottom: -.08em;
+            color: var(--gold);
+            animation: typingCaret .75s step-end infinite;
         }
 
         .typing-mark .university {
@@ -220,17 +229,20 @@
         }
 
         @keyframes typingMark {
-            from {
+            0%, 12% {
                 width: 0;
             }
-            to {
-                width: 13ch;
+            42%, 62% {
+                width: 14ch;
+            }
+            92%, 100% {
+                width: 0;
             }
         }
 
         @keyframes typingCaret {
             50% {
-                border-color: transparent;
+                opacity: 0;
             }
         }
     </style>
