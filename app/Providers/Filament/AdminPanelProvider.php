@@ -7,11 +7,16 @@ use App\Filament\Pages\GeneratedLetters;
 use App\Filament\Pages\GmailInbox;
 use App\Filament\Pages\MyProfile;
 use App\Filament\Widgets\PusmsStatsOverview;
+use App\Filament\Widgets\ScholarshipCoverageChart;
 use App\Filament\Widgets\ScholarshipGrowthChart;
+use App\Filament\Widgets\ScholarshipSemesterSpendChart;
+use App\Filament\Widgets\ScholarshipSpendChart;
+use App\Filament\Widgets\StudentMovementChart;
 use App\Filament\Widgets\StudentsByLevelChart;
 use App\Filament\Widgets\StudentsByProgrammeChart;
 use App\Filament\Widgets\StudentsByRegionChart;
 use App\Filament\Widgets\StudentsBySchoolChart;
+use App\Models\InternalMessage;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -34,6 +39,205 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    private function assistantMarkup(): string
+    {
+        $unread = auth()->check()
+            ? InternalMessage::query()->where('recipient_id', auth()->id())->whereNull('read_at')->count()
+            : 0;
+        $csrf = csrf_token();
+
+        return <<<HTML
+            <a href="/admin/team-messages" class="pusms-message-bell" title="Team messages">
+                <span>Bell</span>
+                <strong>{$unread}</strong>
+            </a>
+            <div class="pusms-ai-assistant" id="pusmsAiAssistant">
+                <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle">AI</button>
+                <div class="pusms-ai-panel" id="pusmsAiPanel" hidden>
+                    <div class="pusms-ai-head">
+                        <strong>PUSMS Assistant</strong>
+                        <button type="button" id="pusmsAiClose">x</button>
+                    </div>
+                    <div class="pusms-ai-body" id="pusmsAiBody">
+                        <div class="pusms-ai-msg">Ask me about this page, students, scholarships, reports, email drafts, SMS drafts, or where to find something.</div>
+                    </div>
+                    <form id="pusmsAiForm" class="pusms-ai-form">
+                        <textarea id="pusmsAiInput" placeholder="Ask about PUSMS..." rows="3"></textarea>
+                        <button type="submit">Send</button>
+                    </form>
+                </div>
+            </div>
+            <style>
+                .pusms-message-bell {
+                    position: fixed;
+                    right: 92px;
+                    bottom: 22px;
+                    z-index: 60;
+                    min-width: 54px;
+                    height: 48px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    background: #ffffff;
+                    color: #082f63;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 10px;
+                    font-weight: 800;
+                    box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
+                    text-decoration: none;
+                }
+
+                .pusms-message-bell strong {
+                    min-width: 22px;
+                    height: 22px;
+                    border-radius: 999px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #dc2626;
+                    color: #ffffff;
+                    font-size: 12px;
+                }
+
+                .pusms-ai-assistant {
+                    position: fixed;
+                    right: 22px;
+                    bottom: 22px;
+                    z-index: 61;
+                }
+
+                .pusms-ai-toggle {
+                    width: 56px;
+                    height: 56px;
+                    border-radius: 999px;
+                    border: 1px solid #082f63;
+                    background: #082f63;
+                    color: #ffffff;
+                    font-weight: 900;
+                    box-shadow: 0 8px 24px rgba(15, 23, 42, .22);
+                }
+
+                .pusms-ai-panel {
+                    position: absolute;
+                    right: 0;
+                    bottom: 68px;
+                    width: min(380px, calc(100vw - 32px));
+                    border: 1px solid #cbd5e1;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    background: #ffffff;
+                    box-shadow: 0 16px 40px rgba(15, 23, 42, .22);
+                }
+
+                .pusms-ai-head {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #cbd5e1;
+                    color: #082f63;
+                }
+
+                .pusms-ai-head button {
+                    border: 0;
+                    background: transparent;
+                    font-weight: 900;
+                    cursor: pointer;
+                }
+
+                .pusms-ai-body {
+                    max-height: 320px;
+                    overflow: auto;
+                    padding: 12px;
+                    display: grid;
+                    gap: 10px;
+                }
+
+                .pusms-ai-msg {
+                    border: 1px solid #dbe3ee;
+                    border-radius: 8px;
+                    padding: 9px;
+                    background: #f8fafc;
+                    white-space: pre-wrap;
+                }
+
+                .pusms-ai-msg.user {
+                    background: #eff6ff;
+                    border-color: #bfdbfe;
+                }
+
+                .pusms-ai-form {
+                    display: grid;
+                    gap: 8px;
+                    padding: 12px;
+                    border-top: 1px solid #cbd5e1;
+                }
+
+                .pusms-ai-form textarea {
+                    width: 100%;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 8px;
+                    padding: 8px;
+                }
+
+                .pusms-ai-form button {
+                    border: 0;
+                    border-radius: 8px;
+                    padding: 9px 12px;
+                    background: #005eea;
+                    color: #ffffff;
+                    font-weight: 800;
+                }
+            </style>
+            <script>
+                (() => {
+                    const toggle = document.getElementById('pusmsAiToggle');
+                    const panel = document.getElementById('pusmsAiPanel');
+                    const close = document.getElementById('pusmsAiClose');
+                    const form = document.getElementById('pusmsAiForm');
+                    const input = document.getElementById('pusmsAiInput');
+                    const body = document.getElementById('pusmsAiBody');
+                    if (!toggle || !panel || !form || toggle.dataset.ready) return;
+                    toggle.dataset.ready = '1';
+                    toggle.addEventListener('click', () => panel.hidden = !panel.hidden);
+                    close?.addEventListener('click', () => panel.hidden = true);
+                    const add = (text, cls = '') => {
+                        const div = document.createElement('div');
+                        div.className = 'pusms-ai-msg ' + cls;
+                        div.textContent = text;
+                        body.appendChild(div);
+                        body.scrollTop = body.scrollHeight;
+                    };
+                    form.addEventListener('submit', async (event) => {
+                        event.preventDefault();
+                        const message = input.value.trim();
+                        if (!message) return;
+                        input.value = '';
+                        add(message, 'user');
+                        add('Thinking...');
+                        const pending = body.lastElementChild;
+                        try {
+                            const response = await fetch('/admin/ai-assistant', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{$csrf}',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ message, page: window.location.pathname })
+                            });
+                            const json = await response.json();
+                            pending.textContent = json.answer || 'I could not find an answer.';
+                        } catch (error) {
+                            pending.textContent = 'The assistant could not respond. Please try again.';
+                        }
+                    });
+                })();
+            </script>
+        HTML;
+    }
+
     public function panel(Panel $panel): Panel
     {
         FilamentIcon::register([
@@ -391,14 +595,14 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::TOPBAR_AFTER,
-                fn (): HtmlString => session()->has('impersonated_by_user_id')
-                    ? new HtmlString(<<<'HTML'
+                fn (): HtmlString => new HtmlString((session()->has('impersonated_by_user_id')
+                    ? <<<'HTML'
                         <div style="padding:8px 16px; border-bottom:1px solid #f59e0b; background:#fffbeb; color:#92400e; font-weight:800; display:flex; justify-content:center; gap:12px;">
                             <span>You are logged in as another user.</span>
                             <a href="/admin/impersonation/stop" style="color:#005eea; text-decoration:underline;">Return to Super Admin</a>
                         </div>
-                    HTML)
-                    : new HtmlString(''),
+                    HTML
+                    : '').$this->assistantMarkup()),
             )
             ->renderHook(
                 PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
@@ -429,6 +633,10 @@ class AdminPanelProvider extends PanelProvider
                 StudentsBySchoolChart::class,
                 StudentsByRegionChart::class,
                 AccountWidget::class,
+                ScholarshipSpendChart::class,
+                ScholarshipSemesterSpendChart::class,
+                ScholarshipCoverageChart::class,
+                StudentMovementChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,
