@@ -390,6 +390,17 @@ class AdminPanelProvider extends PanelProvider
                 HTML),
             )
             ->renderHook(
+                PanelsRenderHook::TOPBAR_AFTER,
+                fn (): HtmlString => session()->has('impersonated_by_user_id')
+                    ? new HtmlString(<<<'HTML'
+                        <div style="padding:8px 16px; border-bottom:1px solid #f59e0b; background:#fffbeb; color:#92400e; font-weight:800; display:flex; justify-content:center; gap:12px;">
+                            <span>You are logged in as another user.</span>
+                            <a href="/admin/impersonation/stop" style="color:#005eea; text-decoration:underline;">Return to Super Admin</a>
+                        </div>
+                    HTML)
+                    : new HtmlString(''),
+            )
+            ->renderHook(
                 PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
                 fn (): HtmlString => new HtmlString(<<<'HTML'
                     <div class="pusms-page-title-logo" aria-hidden="true">

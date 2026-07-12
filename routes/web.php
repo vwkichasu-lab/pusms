@@ -8,7 +8,9 @@ use App\Http\Controllers\ScholarshipLetterController;
 use App\Services\StudentCleanupService;
 use App\Models\GmailAccount;
 use App\Services\GmailOAuthService;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,20 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     Route::get('/admin/gmail/connect', [GmailOAuthController::class, 'redirect'])->name('gmail.connect');
     Route::get('/admin/gmail/callback', [GmailOAuthController::class, 'callback'])->name('gmail.callback');
     Route::delete('/admin/gmail/{gmailAccount}', [GmailOAuthController::class, 'disconnect'])->name('gmail.disconnect');
+    Route::get('/admin/impersonation/stop', function () {
+        $superAdminId = session()->pull('impersonated_by_user_id');
+
+        abort_if(! $superAdminId, 404);
+
+        $superAdmin = User::query()->findOrFail($superAdminId);
+
+        abort_if(! $superAdmin->hasRole('Super Administrator'), 403);
+
+        Auth::login($superAdmin);
+        session()->regenerate();
+
+        return redirect('/admin/users');
+    })->name('admin.impersonation.stop');
 });
 
 Route::post('/maintenance/clear-students', function (Request $request, StudentCleanupService $cleanup) {
