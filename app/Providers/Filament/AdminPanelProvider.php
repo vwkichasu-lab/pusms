@@ -1115,7 +1115,7 @@ class AdminPanelProvider extends PanelProvider
                 HTML),
             )
             ->renderHook(
-                PanelsRenderHook::BODY_START,
+                PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
                 fn (): HtmlString => new HtmlString($this->preLoginLoaderMarkup()),
             )
             ->renderHook(
