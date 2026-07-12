@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
@@ -155,5 +156,21 @@ Route::post('/maintenance/migrate', function (Request $request) {
     return response()->json([
         'migrated' => true,
         'output' => Artisan::output(),
+    ]);
+});
+
+Route::post('/maintenance/last-error', function (Request $request) {
+    $token = config('notifications.maintenance_token');
+
+    abort_if(blank($token) || ! hash_equals($token, (string) $request->bearerToken()), 404);
+
+    $path = storage_path('logs/laravel.log');
+
+    if (! File::exists($path)) {
+        return response()->json(['error' => 'No Laravel log file found.']);
+    }
+
+    return response()->json([
+        'tail' => substr(File::get($path), -12000),
     ]);
 });

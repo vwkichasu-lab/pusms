@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'maintenance/send-test-email',
             'maintenance/send-gmail-api-test',
             'maintenance/migrate',
+            'maintenance/last-error',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

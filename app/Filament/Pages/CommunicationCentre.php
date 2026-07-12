@@ -22,6 +22,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use UnitEnum;
 
 class CommunicationCentre extends Page
@@ -99,12 +100,15 @@ class CommunicationCentre extends Page
     {
         $this->campaignName = 'WhatsApp Campaign '.now()->format('Y-m-d H:i');
         $this->messageBody = "Hello {{first_name}},\n\n";
-        $this->seedDefaultTemplates();
+
+        if ($this->communicationSchemaReady()) {
+            $this->seedDefaultTemplates();
+        }
     }
 
     public function updatedTemplateId(?int $value): void
     {
-        if (! $value) {
+        if (! $value || ! $this->communicationSchemaReady()) {
             return;
         }
 
@@ -122,6 +126,16 @@ class CommunicationCentre extends Page
     {
         if (! Auth::user()?->can('communication.create') && ! Auth::user()?->can('send whatsapp')) {
             abort(403);
+        }
+
+        if (! $this->communicationSchemaReady()) {
+            Notification::make()
+                ->title('Communication tables are being prepared')
+                ->body('Please run migrations or refresh after deployment finishes.')
+                ->warning()
+                ->send();
+
+            return;
         }
 
         $this->validate([
@@ -203,6 +217,12 @@ class CommunicationCentre extends Page
 
     public function saveDraft(): void
     {
+        if (! $this->communicationSchemaReady()) {
+            Notification::make()->title('Communication tables are not ready yet')->warning()->send();
+
+            return;
+        }
+
         MessageCampaign::create([
             'campaign_name' => $this->campaignName ?: 'Draft WhatsApp Campaign',
             'recipient_type' => $this->recipientType,
@@ -221,6 +241,12 @@ class CommunicationCentre extends Page
     {
         if (! Auth::user()?->can('communication.manage_templates')) {
             abort(403);
+        }
+
+        if (! $this->communicationSchemaReady()) {
+            Notification::make()->title('Template storage is not ready yet')->warning()->send();
+
+            return;
         }
 
         $this->validate([
@@ -248,6 +274,8 @@ class CommunicationCentre extends Page
 
     public function editTemplate(int $id): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         $template = MessageTemplate::query()->findOrFail($id);
         $this->editingTemplateId = $template->id;
         $this->templateName = $template->name;
@@ -259,6 +287,8 @@ class CommunicationCentre extends Page
 
     public function duplicateTemplate(int $id): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         $template = MessageTemplate::query()->findOrFail($id);
         MessageTemplate::create([
             'name' => $template->name.' Copy',
@@ -274,17 +304,23 @@ class CommunicationCentre extends Page
 
     public function deleteTemplate(int $id): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         MessageTemplate::query()->whereKey($id)->delete();
     }
 
     public function openCampaign(int $id): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         $this->selectedCampaignId = $id;
         $this->activeTab = 'campaigns';
     }
 
     public function markOpened(int $recipientId): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         $recipient = MessageCampaignRecipient::query()->findOrFail($recipientId);
 
         if ($recipient->status === 'Pending') {
@@ -295,6 +331,8 @@ class CommunicationCentre extends Page
 
     public function markSent(int $recipientId): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         $recipient = MessageCampaignRecipient::query()->findOrFail($recipientId);
         $recipient->update(['status' => 'Marked as Sent', 'marked_sent_at' => now()]);
         $this->refreshCampaignCounts($recipient->campaign);
@@ -302,6 +340,8 @@ class CommunicationCentre extends Page
 
     public function skipRecipient(int $recipientId): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         $recipient = MessageCampaignRecipient::query()->findOrFail($recipientId);
         $recipient->update(['status' => 'Skipped', 'skipped_at' => now()]);
         $this->refreshCampaignCounts($recipient->campaign);
@@ -309,6 +349,8 @@ class CommunicationCentre extends Page
 
     public function cancelCampaign(int $id): void
     {
+        abort_if(! $this->communicationSchemaReady(), 404);
+
         MessageCampaign::query()->whereKey($id)->update(['status' => 'Cancelled']);
     }
 
@@ -335,6 +377,10 @@ class CommunicationCentre extends Page
 
     public function getTemplatesProperty(): Collection
     {
+        if (! $this->communicationSchemaReady()) {
+            return collect();
+        }
+
         return MessageTemplate::query()
             ->where('channel', 'whatsapp')
             ->where('is_active', true)
@@ -344,6 +390,10 @@ class CommunicationCentre extends Page
 
     public function getCampaignsProperty(): Collection
     {
+        if (! $this->communicationSchemaReady()) {
+            return collect();
+        }
+
         return MessageCampaign::query()
             ->with('creator')
             ->where('channel', 'whatsapp')
@@ -355,6 +405,10 @@ class CommunicationCentre extends Page
 
     public function getSelectedCampaignProperty(): ?MessageCampaign
     {
+        if (! $this->communicationSchemaReady()) {
+            return null;
+        }
+
         if (! $this->selectedCampaignId) {
             return $this->campaigns->first();
         }
@@ -514,6 +568,10 @@ class CommunicationCentre extends Page
 
     private function seedDefaultTemplates(): void
     {
+        if (! $this->communicationSchemaReady()) {
+            return;
+        }
+
         $templates = [
             'Scholarship meeting' => "Hello {{first_name}},\n\nYou are invited to an important scholarship meeting.\n\nDate: {{meeting_date}}\nTime: {{meeting_time}}\nVenue: {{venue}}\n\nThank you.",
             'Scholarship renewal reminder' => "Dear {{student_name}},\n\nPlease remember to complete your scholarship renewal for {{academic_year}}.\n\nThank you.",
@@ -537,5 +595,14 @@ class CommunicationCentre extends Page
                 ],
             );
         }
+    }
+
+    private function communicationSchemaReady(): bool
+    {
+        return Schema::hasTable('message_templates')
+            && Schema::hasColumn('message_templates', 'recipient_type')
+            && Schema::hasColumn('message_templates', 'is_active')
+            && Schema::hasTable('message_campaigns')
+            && Schema::hasTable('message_campaign_recipients');
     }
 }
