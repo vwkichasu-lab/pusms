@@ -5,7 +5,6 @@ use App\Http\Controllers\GmailOAuthController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScholarshipHistoryController;
 use App\Http\Controllers\ScholarshipLetterController;
-use App\Http\Controllers\SystemAssistantController;
 use App\Services\StudentCleanupService;
 use App\Models\GmailAccount;
 use App\Services\GmailOAuthService;
@@ -38,7 +37,6 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     Route::get('/admin/gmail/connect', [GmailOAuthController::class, 'redirect'])->name('gmail.connect');
     Route::get('/admin/gmail/callback', [GmailOAuthController::class, 'callback'])->name('gmail.callback');
     Route::delete('/admin/gmail/{gmailAccount}', [GmailOAuthController::class, 'disconnect'])->name('gmail.disconnect');
-    Route::post('/admin/ai-assistant', SystemAssistantController::class)->name('admin.ai-assistant');
     Route::get('/admin/impersonation/stop', function () {
         $superAdminId = session()->pull('impersonated_by_user_id');
 
