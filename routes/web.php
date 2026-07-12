@@ -11,6 +11,7 @@ use App\Services\GmailOAuthService;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
@@ -134,5 +135,25 @@ Route::post('/maintenance/send-gmail-api-test', function (Request $request, Gmai
         'sent' => true,
         'gmail_account' => $account->email,
         'to' => $validated['to'],
+    ]);
+});
+
+Route::post('/maintenance/migrate', function (Request $request) {
+    $token = config('notifications.maintenance_token');
+
+    abort_if(blank($token) || ! hash_equals($token, (string) $request->bearerToken()), 404);
+
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+    } catch (Throwable $exception) {
+        return response()->json([
+            'migrated' => false,
+            'error' => $exception->getMessage(),
+        ], 422);
+    }
+
+    return response()->json([
+        'migrated' => true,
+        'output' => Artisan::output(),
     ]);
 });
