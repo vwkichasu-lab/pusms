@@ -30,6 +30,8 @@ class GmailInbox extends Page
         'error' => null,
     ];
 
+    public ?array $selectedMessage = null;
+
     public static function canAccess(): bool
     {
         return Auth::user()?->can('send email') ?? false;
@@ -64,6 +66,37 @@ class GmailInbox extends Page
                 ->title('Inbox needs Gmail reconnect')
                 ->body('Reconnect Gmail and approve the new read permission.')
                 ->warning()
+                ->send();
+        }
+    }
+
+    public function selectMessage(string $messageId, GmailOAuthService $gmail): void
+    {
+        $account = GmailAccount::query()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at')
+            ->latest('last_used_at')
+            ->latest()
+            ->first();
+
+        if (! $account) {
+            $this->selectedMessage = null;
+
+            Notification::make()
+                ->title('Connect Gmail first')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $this->selectedMessage = $gmail->inboxMessage($account, $messageId);
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->title('Could not open inbox message')
+                ->body('Reconnect Gmail and try again.')
+                ->danger()
                 ->send();
         }
     }

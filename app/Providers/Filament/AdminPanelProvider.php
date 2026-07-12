@@ -294,6 +294,182 @@ class AdminPanelProvider extends PanelProvider
         HTML;
     }
 
+    private function formDraftMarkup(): string
+    {
+        return <<<'HTML'
+            <button type="button" id="pusmsClearFormDraft" class="pusms-clear-draft" hidden>Clear saved form</button>
+            <style>
+                .pusms-clear-draft {
+                    position: fixed;
+                    left: 18px;
+                    bottom: 18px;
+                    z-index: 60;
+                    border: 1px solid #cbd5e1;
+                    border-radius: 999px;
+                    background: #ffffff;
+                    color: #082f63;
+                    padding: 8px 12px;
+                    font-weight: 800;
+                    box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
+                }
+
+                html.dark .pusms-clear-draft {
+                    background: #161b22;
+                    border-color: #30363d;
+                    color: #f8fafc;
+                }
+            </style>
+            <script>
+                (() => {
+                    const storageKey = 'pusms-form-draft:' + window.location.pathname;
+                    const clearButton = document.getElementById('pusmsClearFormDraft');
+                    const ignoredTypes = new Set(['hidden', 'password', 'file', 'submit', 'button', 'reset', 'search']);
+                    let isRestoring = false;
+
+                    const controls = () => Array.from(document.querySelectorAll('main input, main textarea, main select'))
+                        .filter((control) => {
+                            const type = (control.getAttribute('type') || '').toLowerCase();
+                            return !ignoredTypes.has(type)
+                                && !control.disabled
+                                && (control.name || control.id)
+                                && !control.closest('[data-no-draft]');
+                        });
+
+                    const currentDraft = () => {
+                        const draft = {};
+
+                        controls().forEach((control) => {
+                            const key = control.name || control.id;
+
+                            if (control.type === 'checkbox') {
+                                draft[key] ??= [];
+
+                                if (control.checked) {
+                                    draft[key].push(control.value);
+                                }
+
+                                return;
+                            }
+
+                            if (control.type === 'radio') {
+                                if (control.checked) {
+                                    draft[key] = control.value;
+                                }
+
+                                return;
+                            }
+
+                            if (control.multiple) {
+                                draft[key] = Array.from(control.selectedOptions).map((option) => option.value);
+                                return;
+                            }
+
+                            draft[key] = control.value;
+                        });
+
+                        return draft;
+                    };
+
+                    const saveDraft = () => {
+                        if (isRestoring) return;
+
+                        const draft = currentDraft();
+                        localStorage.setItem(storageKey, JSON.stringify(draft));
+                        if (clearButton && Object.keys(draft).length > 0) {
+                            clearButton.hidden = false;
+                        }
+                    };
+
+                    const applyValue = (control, value) => {
+                        if (control.type === 'checkbox') {
+                            control.checked = Array.isArray(value) && value.includes(control.value);
+                            return;
+                        }
+
+                        if (control.type === 'radio') {
+                            control.checked = value === control.value;
+                            return;
+                        }
+
+                        if (control.multiple && Array.isArray(value)) {
+                            Array.from(control.options).forEach((option) => {
+                                option.selected = value.includes(option.value);
+                            });
+                            return;
+                        }
+
+                        if (value !== undefined && value !== null) {
+                            control.value = value;
+                        }
+                    };
+
+                    const restoreDraft = () => {
+                        const raw = localStorage.getItem(storageKey);
+                        if (!raw) return;
+
+                        let draft = {};
+                        try {
+                            draft = JSON.parse(raw);
+                        } catch (error) {
+                            localStorage.removeItem(storageKey);
+                            return;
+                        }
+
+                        isRestoring = true;
+                        controls().forEach((control) => {
+                            const key = control.name || control.id;
+                            if (!(key in draft)) return;
+
+                            applyValue(control, draft[key]);
+                            control.dispatchEvent(new Event('input', { bubbles: true }));
+                            control.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                        isRestoring = false;
+
+                        if (clearButton) {
+                            clearButton.hidden = Object.keys(draft).length === 0;
+                        }
+                    };
+
+                    const bindDraftSaver = () => {
+                        controls().forEach((control) => {
+                            if (control.dataset.pusmsDraftBound) return;
+                            control.dataset.pusmsDraftBound = '1';
+                            control.addEventListener('input', saveDraft);
+                            control.addEventListener('change', saveDraft);
+                        });
+                    };
+
+                    clearButton?.addEventListener('click', () => {
+                        localStorage.removeItem(storageKey);
+                        clearButton.hidden = true;
+                        controls().forEach((control) => {
+                            if (control.type === 'checkbox' || control.type === 'radio') {
+                                control.checked = false;
+                            } else if (control.multiple) {
+                                Array.from(control.options).forEach((option) => option.selected = false);
+                            } else {
+                                control.value = '';
+                            }
+
+                            control.dispatchEvent(new Event('input', { bubbles: true }));
+                            control.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    });
+
+                    const boot = () => {
+                        bindDraftSaver();
+                        window.setTimeout(restoreDraft, 250);
+                    };
+
+                    boot();
+                    document.addEventListener('livewire:navigated', boot);
+                    window.setInterval(bindDraftSaver, 1500);
+                })();
+            </script>
+        HTML;
+    }
+
     public function panel(Panel $panel): Panel
     {
         FilamentIcon::register([
@@ -658,7 +834,7 @@ class AdminPanelProvider extends PanelProvider
                             <a href="/admin/impersonation/stop" style="color:#005eea; text-decoration:underline;">Return to Super Admin</a>
                         </div>
                     HTML
-                    : '').$this->assistantMarkup()),
+                    : '').$this->assistantMarkup().$this->formDraftMarkup()),
             )
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_AFTER,

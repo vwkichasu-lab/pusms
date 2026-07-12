@@ -196,13 +196,14 @@ class GmailOAuthService
         }
 
         $token = $this->refreshAccessToken($account);
+        $query = 'in:inbox newer_than:365d (scholarship OR bursary OR "PU Bursary" OR COPCEF OR PUSMS OR "Pentecost University Scholarship" OR sponsor OR sponsorship)';
 
         $list = Http::withToken($token)
             ->timeout(30)
             ->get('https://gmail.googleapis.com/gmail/v1/users/me/messages', [
                 'labelIds' => 'INBOX',
                 'maxResults' => $limit,
-                'q' => 'in:inbox',
+                'q' => $query,
             ])
             ->throw()
             ->json();
@@ -237,6 +238,93 @@ class GmailOAuthService
             'messages' => $messages,
             'needs_reconnect' => false,
         ];
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    public function inboxMessage(GmailAccount $account, string $messageId): array
+    {
+        if (! in_array('https://www.googleapis.com/auth/gmail.readonly', $account->scopes ?? [], true)) {
+            throw new NotificationConfigurationException(
+                'Reconnect Gmail and approve inbox reading before opening messages.',
+                'gmail_read_scope_missing',
+            );
+        }
+
+        $token = $this->refreshAccessToken($account);
+
+        $detail = Http::withToken($token)
+            ->timeout(30)
+            ->get("https://gmail.googleapis.com/gmail/v1/users/me/messages/{$messageId}", [
+                'format' => 'full',
+            ])
+            ->throw()
+            ->json();
+
+        $headers = collect($detail['payload']['headers'] ?? [])
+            ->mapWithKeys(fn (array $header): array => [strtolower($header['name'] ?? '') => $header['value'] ?? null]);
+
+        return [
+            'id' => $messageId,
+            'from' => $headers['from'] ?? '-',
+            'to' => $headers['to'] ?? '-',
+            'subject' => $headers['subject'] ?? '(no subject)',
+            'date' => $headers['date'] ?? null,
+            'snippet' => $detail['snippet'] ?? '',
+            'body' => $this->extractReadableBody($detail['payload'] ?? []),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function extractReadableBody(array $payload): string
+    {
+        $plain = $this->findMimeBody($payload, 'text/plain');
+
+        if (filled($plain)) {
+            return trim($plain);
+        }
+
+        $html = $this->findMimeBody($payload, 'text/html');
+
+        if (filled($html)) {
+            return trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5));
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function findMimeBody(array $payload, string $mimeType): ?string
+    {
+        if (($payload['mimeType'] ?? null) === $mimeType && filled($payload['body']['data'] ?? null)) {
+            return $this->decodeGmailBody((string) $payload['body']['data']);
+        }
+
+        foreach (($payload['parts'] ?? []) as $part) {
+            if (! is_array($part)) {
+                continue;
+            }
+
+            $body = $this->findMimeBody($part, $mimeType);
+
+            if (filled($body)) {
+                return $body;
+            }
+        }
+
+        return null;
+    }
+
+    private function decodeGmailBody(string $value): string
+    {
+        $decoded = base64_decode(strtr($value, '-_', '+/'), true);
+
+        return $decoded === false ? '' : $decoded;
     }
 
     public function disconnect(GmailAccount $account): void
