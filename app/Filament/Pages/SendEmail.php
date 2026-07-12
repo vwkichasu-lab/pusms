@@ -94,6 +94,7 @@ class SendEmail extends Page
                             ->live(),
                         TextInput::make('subject')
                             ->required()
+                            ->extraInputAttributes(['id' => 'pusms-subject-field'])
                             ->maxLength(255),
                         TextInput::make('reply_to')
                             ->label('Reply-To Email')
@@ -118,6 +119,7 @@ class SendEmail extends Page
                         Textarea::make('message')
                             ->required()
                             ->rows(10)
+                            ->extraInputAttributes(['id' => 'pusms-message-field'])
                             ->placeholder('Dear {{student_name}}, ...')
                             ->helperText('Use {{student_name}} for students, {{contact_person}} for sponsor contacts, or {{name}} for either recipient type.')
                             ->columnSpanFull(),

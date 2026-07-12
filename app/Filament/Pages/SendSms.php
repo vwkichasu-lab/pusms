@@ -71,6 +71,7 @@ class SendSms extends Page
                             ->required()
                             ->rows(6)
                             ->maxLength((int) config('notifications.sms.max_length', 918))
+                            ->extraInputAttributes(['id' => 'pusms-message-field'])
                             ->placeholder('Dear {{student_name}}, ...')
                             ->helperText('Use {{student_name}} for students, {{contact_person}} for sponsor contacts, or {{name}} for either recipient type.')
                             ->columnSpanFull(),

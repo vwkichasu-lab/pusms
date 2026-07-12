@@ -117,14 +117,14 @@ class AdminPanelProvider extends PanelProvider
 
         return <<<HTML
             <div class="pusms-ai-assistant" id="pusmsAiAssistant">
-                <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle">AI</button>
+                <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle">Send with Me</button>
                 <div class="pusms-ai-panel" id="pusmsAiPanel" hidden>
                     <div class="pusms-ai-head">
                         <strong>PUSMS AI</strong>
                         <button type="button" id="pusmsAiClose">x</button>
                     </div>
                     <div class="pusms-ai-body" id="pusmsAiBody">
-                        <div class="pusms-ai-msg">Tell me the message you want. Example: "Write an email inviting PU Bursary students to a meeting on Friday at 10am." I will generate the subject and message with the right placeholders.</div>
+                        <div class="pusms-ai-msg">What do you want to send today?</div>
                     </div>
                     <form id="pusmsAiForm" class="pusms-ai-form">
                         <textarea id="pusmsAiInput" placeholder="Describe the email or SMS you want..." rows="3"></textarea>
@@ -141,8 +141,9 @@ class AdminPanelProvider extends PanelProvider
                 }
 
                 .pusms-ai-toggle {
-                    width: 56px;
+                    min-width: 112px;
                     height: 56px;
+                    padding-inline: 16px;
                     border-radius: 999px;
                     border: 1px solid #082f63;
                     background: #082f63;
@@ -268,8 +269,8 @@ class AdminPanelProvider extends PanelProvider
                                 useButton.textContent = 'Use in form';
                                 useButton.style.cssText = 'display:inline-block;margin-top:8px;border:0;border-radius:8px;padding:8px 10px;background:#005eea;color:#fff;font-weight:800;';
                                 useButton.addEventListener('click', () => {
-                                    const messageField = document.querySelector('textarea[name="data[message]"], textarea[id$="-message"], textarea');
-                                    const subjectField = document.querySelector('input[name="data[subject]"], input[id$="-subject"]');
+                                    const messageField = document.getElementById('pusms-message-field');
+                                    const subjectField = document.getElementById('pusms-subject-field');
                                     if (messageField) {
                                         messageField.value = json.generated_message;
                                         messageField.dispatchEvent(new Event('input', { bubbles: true }));

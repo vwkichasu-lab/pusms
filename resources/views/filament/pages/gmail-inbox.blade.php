@@ -6,7 +6,10 @@
         <div class="space-y-4">
             @if ($this->inbox['needs_reconnect'])
                 <div style="border:1px solid #d69e2e; background:#fffaf0; padding:12px;">
-                    Reconnect Gmail from Gmail Settings and approve the Gmail read permission so PUSMS can show inbox replies inside the system.
+                    PUSMS can send email with the connected Gmail account, but Gmail has not yet approved inbox reading for this connection. Click Reconnect Gmail, choose the scholarship Gmail account again, and approve the inbox/read permission. After that, replies from students and sponsors will show here.
+                    @if ($this->inbox['error'])
+                        <div style="margin-top:8px; color:#92400e;">Reason: {{ $this->inbox['error'] }}</div>
+                    @endif
                 </div>
                 <x-filament::button tag="a" href="{{ route('gmail.connect') }}" icon="heroicon-m-arrow-path">
                     Reconnect Gmail
