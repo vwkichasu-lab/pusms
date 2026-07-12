@@ -6,6 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SystemAssistantController
@@ -67,11 +68,21 @@ class SystemAssistantController
                         ],
                     ],
                 ]);
-        } catch (ConnectionException) {
+        } catch (ConnectionException $exception) {
+            Log::warning('PUSMS AI OpenAI connection failed.', [
+                'error' => $exception->getMessage(),
+            ]);
+
             return null;
         }
 
         if (! $response->successful()) {
+            Log::warning('PUSMS AI OpenAI request failed.', [
+                'status' => $response->status(),
+                'error_type' => Arr::get($response->json(), 'error.type'),
+                'error_code' => Arr::get($response->json(), 'error.code'),
+            ]);
+
             return null;
         }
 
@@ -115,6 +126,8 @@ Rules:
 - For bulk messages, never invent real names. Use placeholders exactly with double curly braces.
 - For email, include greeting, clear body, and closing from Scholarship Office, Pentecost University.
 - For SMS, keep it concise and suitable for a phone message.
+- Transform the request into a complete notice. Do not repeat the user's instruction as the message.
+- If the user gives missing meeting/payment/deadline details, use bracket placeholders like [Insert Date], [Insert Time], [Insert Venue], [Insert Deadline], or [Insert Amount].
 - Do not explain placeholders unless the user asks what placeholders mean.
 - Do not say you cannot perform the task. Generate the best message from the request.
 PROMPT;
@@ -126,7 +139,7 @@ PROMPT;
         $isSms = str_contains($page, 'send-sms') || str_contains($lower, 'sms') || str_contains($lower, 'text message');
         $isSponsor = str_contains($lower, 'sponsor') || str_contains($lower, 'contact person') || str_contains($lower, 'donor');
         $name = $isSponsor ? '{{contact_person}}' : '{{student_name}}';
-        $subject = $isSms ? 'SMS Message' : $this->subjectFor($lower);
+        $subject = $isSms ? 'SMS Message' : $this->subjectFor($lower, $isSponsor);
         $body = $this->bodyFor($prompt, $lower, $name, $isSponsor, $isSms);
 
         if ($isSms) {
@@ -142,8 +155,12 @@ PROMPT;
         ];
     }
 
-    private function subjectFor(string $prompt): string
+    private function subjectFor(string $prompt, bool $isSponsor = false): string
     {
+        if ($isSponsor && (str_contains($prompt, 'fee') || str_contains($prompt, 'pay') || str_contains($prompt, 'payment'))) {
+            return 'Scholarship Fee Support Request';
+        }
+
         return match (true) {
             str_contains($prompt, 'meeting') => 'Scholarship Meeting Notice',
             str_contains($prompt, 'award') || str_contains($prompt, 'congrat') => 'Scholarship Award Notice',
@@ -165,6 +182,14 @@ PROMPT;
         $closing = $isSponsor
             ? "Thank you for your continued support.\n\nRegards,\nScholarship Office\nPentecost University"
             : "Please treat this notice as important.\n\nThank you.\n\nPentecost University Scholarship Committee";
+
+        if ($isSponsor && (str_contains($lower, 'fee') || str_contains($lower, 'pay') || str_contains($lower, 'payment'))) {
+            return "Dear {$name},\n\nWe kindly write to remind you of the outstanding scholarship fee support for the students under your sponsorship.\n\nThe Scholarship Office would be grateful if payment arrangements could be completed or confirmed at your earliest convenience to support the affected students and avoid delays in their academic registration or fee processing.\n\nKindly contact the Scholarship Office if you need the beneficiary list, payment details, or any further clarification.\n\n{$closing}";
+        }
+
+        if ($isSponsor && (str_contains($lower, 'report') || str_contains($lower, 'update'))) {
+            return "Dear {$name},\n\nWe are pleased to share an update on the students supported through {{sponsor_name}}.\n\nThe Scholarship Office is available to provide beneficiary details, academic progress summaries, and any additional information required for your records.\n\n{$closing}";
+        }
 
         if (str_contains($lower, 'meeting') || str_contains($lower, 'vc') || str_contains($lower, 'vice chancellor')) {
             return "Dear {$name},\n\nYou are kindly informed that there will be an important meeting with the Vice-Chancellor and the Scholarship Committee.\n\nThe meeting is scheduled as follows:\n\nDate: [Insert Date]\nTime: [Insert Time]\nVenue: [Insert Venue]\n\nAll selected scholarship recipients are expected to be present and punctual, as important information concerning scholarship support, expectations, and student welfare will be discussed.\n\n{$closing}";
@@ -201,6 +226,11 @@ PROMPT;
 
     private function smsBodyFor(string $prompt, string $lower, string $name): string
     {
+        if ((str_contains($lower, 'sponsor') || str_contains($lower, 'contact person') || str_contains($lower, 'donor')) &&
+            (str_contains($lower, 'fee') || str_contains($lower, 'pay') || str_contains($lower, 'payment'))) {
+            return "Dear {$name}, kindly be reminded to confirm or complete the scholarship fee support for your sponsored students. Please contact the Scholarship Office for beneficiary or payment details. Thank you.";
+        }
+
         if (str_contains($lower, 'meeting') || str_contains($lower, 'vc') || str_contains($lower, 'vice chancellor')) {
             return "Dear {$name}, you are invited to an important scholarship meeting with the Vice-Chancellor and Scholarship Committee. Date: [Insert Date]. Time: [Insert Time]. Venue: [Insert Venue]. Please be punctual.";
         }
