@@ -119,6 +119,29 @@
             animation: loadBar 1.2s ease 2.45s forwards;
         }
 
+        .start-button {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: titleIn .75s ease 3s forwards;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+            height: 48px;
+            padding: 0 22px;
+            border-radius: 8px;
+            background: var(--blue);
+            color: #ffffff;
+            font-weight: 900;
+            text-decoration: none;
+            box-shadow: 0 10px 24px rgba(5, 58, 130, .22);
+        }
+
+        .start-button:focus-visible {
+            outline: 3px solid var(--gold);
+            outline-offset: 3px;
+        }
+
         @keyframes assemble {
             0% {
                 opacity: 0;
@@ -197,12 +220,8 @@
         <div class="bar" aria-hidden="true">
             <span></span>
         </div>
-    </main>
 
-    <script>
-        window.setTimeout(() => {
-            window.location.assign('/admin/login');
-        }, 3900);
-    </script>
+        <a class="start-button" href="/admin/login">Get Started</a>
+    </main>
 </body>
 </html>

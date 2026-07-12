@@ -118,6 +118,7 @@ class AdminPanelProvider extends PanelProvider
                     </div>
                     <h1>Scholarship In Pentecost University</h1>
                     <div class="pusms-loader-bar"><span></span></div>
+                    <button type="button" class="pusms-loader-start" id="pusmsLoginStart">Get Started</button>
                 </div>
             </div>
             <style>
@@ -214,6 +215,30 @@ class AdminPanelProvider extends PanelProvider
                     animation: pusmsLoadBar 1.2s ease 2.45s forwards;
                 }
 
+                .pusms-loader-start {
+                    opacity: 0;
+                    transform: translateY(10px);
+                    animation: pusmsTitleIn .75s ease 3s forwards;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 150px;
+                    height: 48px;
+                    padding: 0 22px;
+                    border: 0;
+                    border-radius: 8px;
+                    background: #053a82;
+                    color: #ffffff;
+                    font-weight: 900;
+                    cursor: pointer;
+                    box-shadow: 0 10px 24px rgba(5, 58, 130, .22);
+                }
+
+                .pusms-loader-start:focus-visible {
+                    outline: 3px solid #f3b51b;
+                    outline-offset: 3px;
+                }
+
                 @keyframes pusmsAssemble {
                     0% { opacity: 0; transform: translateY(42px) scale(.62) rotate(-7deg); clip-path: inset(76% 24% 0 24%); }
                     40% { opacity: 1; transform: translateY(10px) scale(.82) rotate(0deg); clip-path: inset(38% 12% 0 12%); }
@@ -241,9 +266,9 @@ class AdminPanelProvider extends PanelProvider
                 }
             </style>
             <script>
-                window.setTimeout(() => {
+                document.getElementById('pusmsLoginStart')?.addEventListener('click', () => {
                     document.getElementById('pusmsLoginLoader')?.classList.add('is-done');
-                }, 3900);
+                });
             </script>
         HTML;
     }
