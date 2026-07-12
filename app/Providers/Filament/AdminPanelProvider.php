@@ -215,18 +215,18 @@ class AdminPanelProvider extends PanelProvider
 
                         .fi-header-actions-ctn {
                             flex: 1 1 auto !important;
-                            min-width: min(430px, 45vw);
-                            justify-content: center !important;
-                            align-items: flex-start !important;
+                            min-width: auto !important;
+                            justify-content: flex-end !important;
+                            align-items: center !important;
                         }
 
                         .pusms-page-title-logo {
-                            width: min(430px, 45vw);
-                            height: 150px;
+                            width: 86px;
+                            height: 72px;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            margin-top: -.5rem;
+                            margin: 0 0 0 auto;
                         }
 
                         .pusms-page-title-logo img {
@@ -353,13 +353,13 @@ class AdminPanelProvider extends PanelProvider
                             .fi-header-actions-ctn {
                                 min-width: 0;
                                 width: 100%;
-                                justify-content: center !important;
-                                margin-top: .75rem;
+                                justify-content: flex-end !important;
+                                margin-top: 0;
                             }
 
                             .pusms-page-title-logo {
-                                width: min(100%, 360px);
-                                height: 108px;
+                                width: 54px;
+                                height: 48px;
                             }
                         }
                     </style>
