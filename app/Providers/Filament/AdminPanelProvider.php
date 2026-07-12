@@ -210,14 +210,26 @@ class AdminPanelProvider extends PanelProvider
                         }
 
                         .fi-header {
-                            align-items: flex-start !important;
+                            display: grid !important;
+                            grid-template-columns: minmax(0, 1fr) auto !important;
+                            align-items: start !important;
+                            column-gap: 1rem !important;
+                            row-gap: .5rem !important;
                         }
 
                         .fi-header-actions-ctn {
-                            flex: 1 1 auto !important;
+                            display: grid !important;
+                            grid-template-columns: auto !important;
+                            grid-auto-rows: min-content !important;
+                            row-gap: .55rem !important;
+                            justify-items: end !important;
+                            align-items: start !important;
                             min-width: auto !important;
                             justify-content: flex-end !important;
-                            align-items: center !important;
+                        }
+
+                        .fi-header-actions-ctn > :not(.pusms-page-title-logo) {
+                            grid-row: 2 !important;
                         }
 
                         .pusms-page-title-logo {
@@ -227,6 +239,8 @@ class AdminPanelProvider extends PanelProvider
                             align-items: center;
                             justify-content: center;
                             margin: 0 0 0 auto;
+                            grid-row: 1 !important;
+                            justify-self: end !important;
                         }
 
                         .pusms-page-title-logo img {
@@ -352,7 +366,7 @@ class AdminPanelProvider extends PanelProvider
 
                             .fi-header-actions-ctn {
                                 min-width: 0;
-                                width: 100%;
+                                width: auto;
                                 justify-content: flex-end !important;
                                 margin-top: 0;
                             }

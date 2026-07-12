@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
@@ -30,6 +31,11 @@ class BackupRestore extends Page
     protected string $view = 'filament.pages.backup-restore';
 
     public array $data = [];
+
+    public static function canAccess(): bool
+    {
+        return Auth::user()?->hasRole('Super Administrator') ?? false;
+    }
 
     public function form(Schema $schema): Schema
     {

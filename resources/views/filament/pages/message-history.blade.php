@@ -210,11 +210,11 @@
                 </div>
 
                 <div class="pusms-mailbox-actions">
-                    <button type="button" class="pusms-mailbox-icon" aria-label="Select messages">☐</button>
-                    <button type="button" class="pusms-mailbox-icon" aria-label="Refresh">↻</button>
-                    <button type="button" class="pusms-mailbox-icon" aria-label="More actions">⋮</button>
+                    <button type="button" class="pusms-mailbox-icon" aria-label="Select messages">[]</button>
+                    <button type="button" class="pusms-mailbox-icon" aria-label="Refresh">R</button>
+                    <button type="button" class="pusms-mailbox-icon" aria-label="More actions">...</button>
                     <span style="color:#64748b; font-weight:700;">
-                        {{ $this->messages->count() ? '1-' . $this->messages->count() . ' of ' . $this->messages->count() : '0 of 0' }}
+                        {{ count($this->messages) ? '1-' . count($this->messages) . ' of ' . count($this->messages) : '0 of 0' }}
                     </span>
                 </div>
             </div>
