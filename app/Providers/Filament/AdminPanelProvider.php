@@ -165,9 +165,11 @@ class AdminPanelProvider extends PanelProvider
                 .pusms-loader-ring {
                     position: absolute;
                     inset: 8px;
-                    border: 2px solid #dbe3ee;
+                    border: 2px solid #f3b51b;
                     border-radius: 28px;
-                    animation: pusmsRingFade 2.8s ease forwards;
+                    background: #ffffff;
+                    box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+                    animation: pusmsRingSettle 2.8s ease forwards;
                 }
 
                 .pusms-loader-spark {
@@ -177,12 +179,12 @@ class AdminPanelProvider extends PanelProvider
                     border-radius: 999px;
                     background: #f3b51b;
                     opacity: 0;
-                    animation: pusmsSpark 2.8s ease forwards;
+                    animation: pusmsSparkBlink 1.25s ease-in-out infinite;
                 }
 
                 .pusms-loader-spark.one { top: 16px; left: 44px; }
                 .pusms-loader-spark.two { right: 30px; top: 58px; animation-delay: .25s; }
-                .pusms-loader-spark.three { left: 28px; bottom: 44px; animation-delay: .45s; }
+                .pusms-loader-spark.three { left: 28px; bottom: 44px; animation-delay: .5s; }
 
                 .pusms-login-loader h1 {
                     margin: 0;
@@ -245,16 +247,14 @@ class AdminPanelProvider extends PanelProvider
                     100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); clip-path: inset(0 0 0 0); }
                 }
 
-                @keyframes pusmsRingFade {
+                @keyframes pusmsRingSettle {
                     0% { opacity: 0; transform: scale(.72); }
-                    50% { opacity: 1; }
-                    100% { opacity: 0; transform: scale(1.08); }
+                    100% { opacity: 1; transform: scale(1); }
                 }
 
-                @keyframes pusmsSpark {
-                    0%, 24% { opacity: 0; transform: scale(.2); }
-                    36% { opacity: 1; transform: scale(1); }
-                    100% { opacity: 0; transform: scale(.4) translateY(-18px); }
+                @keyframes pusmsSparkBlink {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: .2; transform: scale(.65); }
                 }
 
                 @keyframes pusmsTitleIn {

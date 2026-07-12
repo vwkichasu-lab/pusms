@@ -46,9 +46,11 @@
         .logo-ring {
             position: absolute;
             inset: 8px;
-            border: 2px solid var(--line);
+            border: 2px solid var(--gold);
             border-radius: 28px;
-            animation: ringFade 2.8s ease forwards;
+            background: #ffffff;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+            animation: ringSettle 2.8s ease forwards;
         }
 
         .logo-piece {
@@ -65,7 +67,7 @@
             border-radius: 999px;
             background: var(--gold);
             opacity: 0;
-            animation: spark 2.8s ease forwards;
+            animation: sparkBlink 1.25s ease-in-out infinite;
         }
 
         .spark.one {
@@ -82,7 +84,7 @@
         .spark.three {
             left: 28px;
             bottom: 44px;
-            animation-delay: .45s;
+            animation-delay: .5s;
         }
 
         .system-name {
@@ -160,32 +162,25 @@
             }
         }
 
-        @keyframes ringFade {
+        @keyframes ringSettle {
             0% {
                 opacity: 0;
                 transform: scale(.72);
             }
-            50% {
-                opacity: 1;
-            }
             100% {
-                opacity: 0;
-                transform: scale(1.08);
-            }
-        }
-
-        @keyframes spark {
-            0%, 24% {
-                opacity: 0;
-                transform: scale(.2);
-            }
-            36% {
                 opacity: 1;
                 transform: scale(1);
             }
-            100% {
-                opacity: 0;
-                transform: scale(.4) translateY(-18px);
+        }
+
+        @keyframes sparkBlink {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: .2;
+                transform: scale(.65);
             }
         }
 
