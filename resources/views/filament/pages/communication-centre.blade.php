@@ -208,7 +208,7 @@
                     <summary style="cursor:pointer; font-weight:900; color:#005eea;">View placeholders</summary>
                     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
                         @foreach ($this->placeholders as $placeholder)
-                            <span class="cc-pill">{{ '{{' . $placeholder . '}}' }}</span>
+                            <span class="cc-pill">&#123;&#123;{{ $placeholder }}&#125;&#125;</span>
                         @endforeach
                     </div>
                 </details>
