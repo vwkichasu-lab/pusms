@@ -7,7 +7,8 @@ use App\Models\Programme;
 use App\Models\ScholarshipProgramme;
 use App\Models\Sponsor;
 use App\Models\Student;
-use App\Services\CommunicationService;
+use App\Services\Notifications\Support\PhoneNumber;
+use App\Services\TemplateVariableService;
 use BackedEnum;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
-class SendSms extends Page
+class SendWhatsApp extends Page
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
@@ -31,9 +32,11 @@ class SendSms extends Page
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $title = 'Send SMS';
+    protected static ?string $title = 'Send WhatsApp';
 
-    protected string $view = 'filament.pages.send-sms';
+    protected static ?string $slug = 'send-whatsapp';
+
+    protected string $view = 'filament.pages.send-whatsapp';
 
     /**
      * @var array<string, mixed>
@@ -42,11 +45,19 @@ class SendSms extends Page
         'recipient_group' => 'students',
         'send_all' => true,
         'send_all_sponsors' => true,
+        'message' => 'Dear {{name}}, ',
     ];
+
+    /**
+     * @var array<int, array{name: string, phone: string, message: string, url: string}>
+     */
+    public array $preparedRecipients = [];
 
     public static function canAccess(): bool
     {
-        return Auth::user()?->can('send sms') ?? false;
+        $user = Auth::user();
+
+        return (bool) ($user?->can('send whatsapp') || $user?->can('send email') || $user?->can('use email and whatsapp pages'));
     }
 
     public function form(Schema $schema): Schema
@@ -54,8 +65,8 @@ class SendSms extends Page
         return $schema
             ->statePath('data')
             ->components([
-                Section::make('SMS Message')
-                    ->description(fn (): string => 'SMS is sent through '.str(config('notifications.sms.provider', 'arkesel'))->headline().' to selected students and/or sponsors.')
+                Section::make('WhatsApp Message')
+                    ->description('PUSMS prepares each personalized message and opens WhatsApp for the selected phone number. Press Send inside WhatsApp to deliver it.')
                     ->schema([
                         Select::make('recipient_group')
                             ->label('Send To')
@@ -70,7 +81,6 @@ class SendSms extends Page
                         Textarea::make('message')
                             ->required()
                             ->rows(6)
-                            ->maxLength((int) config('notifications.sms.max_length', 918))
                             ->extraInputAttributes(['id' => 'pusms-message-field'])
                             ->placeholder('Dear {{student_name}}, ...')
                             ->helperText('Use {{student_name}} for students, {{contact_person}} for sponsor contacts, or {{name}} for either recipient type.')
@@ -109,7 +119,7 @@ class SendSms extends Page
                             ->options(['not_alumni' => 'Continuing Student', 'alumni' => 'Alumni'])
                             ->live(),
                         Toggle::make('send_all')
-                            ->label('Send to all matching students')
+                            ->label('Prepare for all matching students')
                             ->default(true)
                             ->live(),
                         CheckboxList::make('selected_student_ids')
@@ -130,10 +140,10 @@ class SendSms extends Page
                     ->columns(3)
                     ->visible(fn (Get $get): bool => in_array($get('recipient_group'), ['students', 'students_and_sponsors'], true)),
                 Section::make('Sponsors')
-                    ->description('Send to sponsor contact persons using the phone number saved on the sponsor record.')
+                    ->description('Prepare WhatsApp messages for sponsor contact persons using the phone number saved on the sponsor record.')
                     ->schema([
                         Toggle::make('send_all_sponsors')
-                            ->label('Send to all sponsors with phone numbers')
+                            ->label('Prepare for all sponsors with phone numbers')
                             ->default(true)
                             ->live(),
                         CheckboxList::make('selected_sponsor_ids')
@@ -155,7 +165,7 @@ class SendSms extends Page
             ]);
     }
 
-    public function send(CommunicationService $communications): void
+    public function prepare(TemplateVariableService $templates): void
     {
         $state = $this->form->getState();
         $recipientGroup = $state['recipient_group'] ?? 'students';
@@ -176,32 +186,78 @@ class SendSms extends Page
         }
 
         $communication = Communication::create([
-            'subject' => 'SMS Message',
+            'subject' => 'WhatsApp Message',
             'message' => $state['message'],
-            'communication_type' => 'sms',
+            'communication_type' => 'whatsapp',
             'created_by' => Auth::id(),
-            'status' => 'draft',
+            'status' => 'prepared',
             'metadata' => [
-                'source_page' => 'send_sms',
+                'source_page' => 'send_whatsapp',
                 'student_count' => $students->count(),
                 'sponsor_count' => $sponsors->count(),
             ],
         ]);
 
-        $communications->dispatch($communication, $students, $sponsors);
-        $communication->refresh()->load('recipients');
-        $sent = $communication->recipients->where('delivery_status', 'sent')->count();
-        $failed = $communication->recipients->where('delivery_status', 'failed')->count();
-        $queued = $communication->recipients->where('delivery_status', 'queued')->count();
+        $prepared = [];
+
+        foreach ($students as $student) {
+            $prepared[] = $this->prepareRecipient($communication, $templates, $state['message'], $student, null);
+        }
+
+        foreach ($sponsors as $sponsor) {
+            $prepared[] = $this->prepareRecipient($communication, $templates, $state['message'], null, $sponsor);
+        }
+
+        $this->preparedRecipients = array_values(array_filter($prepared));
 
         Notification::make()
-            ->title('SMS processed')
-            ->body("Sent: {$sent}. Failed: {$failed}. Queued: {$queued}. Open Message History to see the reason for any failure.")
-            ->status($failed > 0 ? 'warning' : 'success')
+            ->title('WhatsApp messages prepared')
+            ->body('Open each WhatsApp link and press Send inside WhatsApp.')
+            ->success()
             ->send();
+    }
 
-        $this->data['selected_student_ids'] = [];
-        $this->data['selected_sponsor_ids'] = [];
+    private function prepareRecipient(
+        Communication $communication,
+        TemplateVariableService $templates,
+        string $messageTemplate,
+        ?Student $student,
+        ?Sponsor $sponsor,
+    ): ?array {
+        $phone = $student?->phone ?? $sponsor?->phone;
+
+        if (! filled($phone)) {
+            return null;
+        }
+
+        try {
+            $normalized = PhoneNumber::normalize($phone, '233');
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $message = $templates->render($messageTemplate, $student, $sponsor);
+        $digits = ltrim($normalized, '+');
+        $url = 'https://wa.me/'.$digits.'?'.http_build_query(['text' => $message]);
+
+        $communication->recipients()->create([
+            'student_id' => $student?->id,
+            'sponsor_id' => $sponsor?->id,
+            'channel' => 'whatsapp',
+            'destination' => $normalized,
+            'delivery_status' => 'prepared',
+            'provider_response' => [
+                'provider' => 'whatsapp_link',
+                'url' => $url,
+            ],
+        ]);
+
+        return [
+            'name' => $student?->full_name ?? $sponsor?->contact_person ?? $sponsor?->name ?? 'Recipient',
+            'phone' => $normalized,
+            'message' => $message,
+            'url' => $url,
+        ];
     }
 
     /**

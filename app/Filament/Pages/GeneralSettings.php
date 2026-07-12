@@ -45,7 +45,6 @@ class GeneralSettings extends Page
             'office_phone' => $this->setting('office_phone', ''),
             'default_academic_year' => $this->setting('default_academic_year', '2025/2026'),
             'allow_gmail_sending' => (bool) $this->setting('allow_gmail_sending', true),
-            'allow_sms_sending' => (bool) $this->setting('allow_sms_sending', true),
         ]);
     }
 
@@ -82,9 +81,6 @@ class GeneralSettings extends Page
                             ->maxLength(50),
                         Toggle::make('allow_gmail_sending')
                             ->label('Allow Gmail Sending')
-                            ->default(true),
-                        Toggle::make('allow_sms_sending')
-                            ->label('Allow SMS Sending')
                             ->default(true),
                     ])
                     ->columns(2),

@@ -4,9 +4,7 @@ namespace App\Jobs;
 
 use App\Models\CommunicationRecipient;
 use App\Services\Notifications\Contracts\EmailSender;
-use App\Services\Notifications\Contracts\SmsSender;
 use App\Services\Notifications\Data\EmailMessage;
-use App\Services\Notifications\Data\SmsMessage;
 use App\Services\Notifications\Senders\GmailApiEmailSender;
 use App\Services\TemplateVariableService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +27,7 @@ class SendCommunicationRecipient implements ShouldQueue
 
     public function __construct(public int $recipientId) {}
 
-    public function handle(EmailSender $email, SmsSender $sms, TemplateVariableService $templates, ?GmailApiEmailSender $gmailEmail = null): void
+    public function handle(EmailSender $email, TemplateVariableService $templates, ?GmailApiEmailSender $gmailEmail = null): void
     {
         $recipient = CommunicationRecipient::query()
             ->with(['communication.gmailAccount', 'student.level', 'student.programme', 'sponsor'])
@@ -51,36 +49,32 @@ class SendCommunicationRecipient implements ShouldQueue
         }
 
         try {
-            if ($recipient->channel === 'email') {
-                $html = view('emails.communication', [
-                    'communication' => $recipient->communication,
-                    'recipient' => $recipient,
-                    'messageBody' => $message,
-                ])->render();
-
-                $emailMessage = new EmailMessage(
-                    to: $recipient->destination,
-                    subject: $recipient->communication->subject ?? 'Pentecost University Scholarship Update',
-                    text: $message,
-                    html: $html,
-                    toName: $recipient->student?->full_name ?? $recipient->sponsor?->contact_person ?? $recipient->sponsor?->name,
-                    replyTo: $recipient->communication->metadata['reply_to'] ?? null,
-                    cc: $recipient->communication->metadata['cc'] ?? [],
-                    bcc: $recipient->communication->metadata['bcc'] ?? [],
-                    idempotencyKey: $this->idempotencyKey($recipient),
-                    attachments: $this->attachments($recipient),
-                );
-
-                $result = $recipient->communication->gmailAccount
-                    ? ($gmailEmail ?? app(GmailApiEmailSender::class))->send($emailMessage, $recipient->communication->gmailAccount)
-                    : $email->send($emailMessage);
-            } else {
-                $result = $sms->send(new SmsMessage(
-                    to: $recipient->destination,
-                    message: $message,
-                    idempotencyKey: $this->idempotencyKey($recipient),
-                ));
+            if ($recipient->channel !== 'email') {
+                return;
             }
+
+            $html = view('emails.communication', [
+                'communication' => $recipient->communication,
+                'recipient' => $recipient,
+                'messageBody' => $message,
+            ])->render();
+
+            $emailMessage = new EmailMessage(
+                to: $recipient->destination,
+                subject: $recipient->communication->subject ?? 'Pentecost University Scholarship Update',
+                text: $message,
+                html: $html,
+                toName: $recipient->student?->full_name ?? $recipient->sponsor?->contact_person ?? $recipient->sponsor?->name,
+                replyTo: $recipient->communication->metadata['reply_to'] ?? null,
+                cc: $recipient->communication->metadata['cc'] ?? [],
+                bcc: $recipient->communication->metadata['bcc'] ?? [],
+                idempotencyKey: $this->idempotencyKey($recipient),
+                attachments: $this->attachments($recipient),
+            );
+
+            $result = $recipient->communication->gmailAccount
+                ? ($gmailEmail ?? app(GmailApiEmailSender::class))->send($emailMessage, $recipient->communication->gmailAccount)
+                : $email->send($emailMessage);
 
             $recipient->update([
                 'delivery_status' => 'sent',

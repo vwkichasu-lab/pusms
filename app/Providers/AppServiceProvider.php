@@ -3,11 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Notifications\Contracts\EmailSender;
-use App\Services\Notifications\Contracts\SmsSender;
-use App\Services\Notifications\Senders\ArkeselSmsSender;
 use App\Services\Notifications\Senders\FakeEmailSender;
-use App\Services\Notifications\Senders\FakeSmsSender;
-use App\Services\Notifications\Senders\HubtelSmsSender;
 use App\Services\Notifications\Senders\LaravelSmtpEmailSender;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -26,14 +22,6 @@ class AppServiceProvider extends ServiceProvider
             };
         });
 
-        $this->app->bind(SmsSender::class, function ($app): SmsSender {
-            return match (strtolower((string) config('notifications.sms.provider'))) {
-                'fake' => $app->make(FakeSmsSender::class),
-                'arkesel' => $app->make(ArkeselSmsSender::class),
-                'hubtel' => $app->make(HubtelSmsSender::class),
-                default => $app->make(HubtelSmsSender::class),
-            };
-        });
     }
 
     /**

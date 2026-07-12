@@ -1,9 +1,7 @@
 <?php
 
 use App\Services\Notifications\Contracts\EmailSender;
-use App\Services\Notifications\Contracts\SmsSender;
 use App\Services\Notifications\Data\EmailMessage;
-use App\Services\Notifications\Data\SmsMessage;
 use App\Services\StudentCleanupService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -31,30 +29,6 @@ Artisan::command('pusms:test-email {to} {--subject=Pentecost University test ema
 
     return 0;
 })->purpose('Send a development-only test email through the configured notification provider');
-
-Artisan::command('pusms:test-sms {to} {--message=PUSMS SMS delivery test.} {--force-production : Allow a real production SMS test}', function (SmsSender $sms): int {
-    if (app()->environment('production') && ! $this->option('force-production')) {
-        $this->error('This command is disabled in production unless --force-production is provided.');
-
-        return 1;
-    }
-
-    try {
-        $result = $sms->send(new SmsMessage(
-            to: $this->argument('to'),
-            message: $this->option('message'),
-            idempotencyKey: 'dev-test-sms:'.now()->timestamp,
-        ));
-    } catch (Throwable $exception) {
-        $this->error('SMS test failed: '.$exception->getMessage());
-
-        return 1;
-    }
-
-    $this->info("SMS test {$result->status} through {$result->provider}.");
-
-    return 0;
-})->purpose('Send a development-only test SMS through the configured notification provider');
 
 Artisan::command('pusms:clear-students {--force : Confirm destructive student cleanup}', function (StudentCleanupService $cleanup): int {
     if (! $this->option('force')) {

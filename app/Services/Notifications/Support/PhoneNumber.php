@@ -24,7 +24,7 @@ final class PhoneNumber
 
         if (str_starts_with($digits, '0')) {
             if (blank($defaultCountryCode)) {
-                throw new NotificationValidationException('Phone number must include country code or PUSMS_SMS_DEFAULT_COUNTRY_CODE must be configured.', 'missing_country_code');
+                throw new NotificationValidationException('Phone number must include a country code or the Ghana default country code must be configured.', 'missing_country_code');
             }
 
             return self::validateE164Digits(preg_replace('/\D+/', '', $defaultCountryCode).substr($digits, 1));

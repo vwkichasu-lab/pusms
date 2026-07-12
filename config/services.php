@@ -35,19 +35,6 @@ return [
         ],
     ],
 
-    'hubtel' => [
-        'client_id' => env('HUBTEL_CLIENT_ID'),
-        'client_secret' => env('HUBTEL_CLIENT_SECRET'),
-        'sender_id' => env('HUBTEL_SENDER_ID', 'PUSMS'),
-        'base_url' => env('HUBTEL_BASE_URL', 'https://smsc.hubtel.com/v1/messages/send'),
-    ],
-
-    'arkesel' => [
-        'api_key' => env('ARKESEL_SMS_API_KEY'),
-        'sender_id' => env('ARKESEL_SMS_SENDER_ID', 'PUSMS'),
-        'base_url' => env('ARKESEL_SMS_BASE_URL', 'https://sms.arkesel.com/api/v2/sms/send'),
-    ],
-
     'gmail' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

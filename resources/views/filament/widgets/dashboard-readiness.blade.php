@@ -147,7 +147,7 @@
                 ['label' => 'Academic Management', 'items' => 'Schools, departments, programmes, levels, academic years, semesters'],
                 ['label' => 'Student Management', 'items' => 'Profiles, filters, imports, documents, scholarship history'],
                 ['label' => 'Scholarships and Alumni', 'items' => 'Sponsors, programmes, assignments, coverage, history, alumni badges'],
-                ['label' => 'Communication and Reports', 'items' => 'Templates, email queue, Hubtel SMS, exports, search, dashboard analytics'],
+                ['label' => 'Communication and Reports', 'items' => 'Gmail sending, WhatsApp message links, exports, search, dashboard analytics'],
             ] as $area)
                 <div class="pusms-work-card">
                     <h3>{{ $area['label'] }}</h3>
