@@ -11,7 +11,7 @@ class ScholarshipSpendChart extends ChartWidget
 
     protected ?string $description = 'Total amount awarded to scholarship students each academic year.';
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 1;
 
     protected static ?int $sort = 2;
 

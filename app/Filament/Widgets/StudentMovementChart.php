@@ -11,7 +11,7 @@ class StudentMovementChart extends ChartWidget
 
     protected ?string $description = 'Admissions by year compared with students marked dropped, deferred, withdrawn, or terminated.';
 
-    protected int|string|array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 1;
 
     protected static ?int $sort = 5;
 

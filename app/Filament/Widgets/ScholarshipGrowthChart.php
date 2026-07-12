@@ -11,7 +11,7 @@ class ScholarshipGrowthChart extends ChartWidget
 
     protected ?string $description = 'Counts scholarship assignment records grouped by academic year.';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = 1;
 
     protected ?string $pollingInterval = null;
 

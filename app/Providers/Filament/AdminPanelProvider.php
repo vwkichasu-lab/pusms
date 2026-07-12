@@ -39,27 +39,81 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
-    private function assistantMarkup(): string
+    private function notificationBellMarkup(): string
     {
         $unread = auth()->check()
             ? InternalMessage::query()->where('recipient_id', auth()->id())->whereNull('read_at')->count()
             : 0;
+
+        return <<<HTML
+            <a href="/admin/team-messages" class="pusms-header-bell" title="Team messages">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5-6.71V3a2 2 0 1 0-4 0v1.29A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/>
+                </svg>
+                <strong>{$unread}</strong>
+            </a>
+            <style>
+                .pusms-header-bell {
+                    position: relative;
+                    width: 48px;
+                    height: 48px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-inline: .35rem;
+                    border: 1px solid #dbe3ee;
+                    border-radius: 14px;
+                    background: #f8fafc;
+                    color: #020617;
+                    text-decoration: none;
+                    box-shadow: 0 4px 16px rgba(15, 23, 42, .08);
+                }
+
+                .pusms-header-bell svg {
+                    width: 24px;
+                    height: 24px;
+                }
+
+                .pusms-header-bell strong {
+                    position: absolute;
+                    top: 7px;
+                    right: 7px;
+                    min-width: 18px;
+                    height: 18px;
+                    padding-inline: 4px;
+                    border-radius: 999px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #111827;
+                    color: #ffffff;
+                    font-size: 11px;
+                    border: 2px solid #ffffff;
+                }
+
+                html.dark .pusms-header-bell {
+                    background: #161b22;
+                    border-color: #30363d;
+                    color: #f8fafc;
+                }
+            </style>
+        HTML;
+    }
+
+    private function assistantMarkup(): string
+    {
         $csrf = csrf_token();
 
         return <<<HTML
-            <a href="/admin/team-messages" class="pusms-message-bell" title="Team messages">
-                <span>Bell</span>
-                <strong>{$unread}</strong>
-            </a>
             <div class="pusms-ai-assistant" id="pusmsAiAssistant">
                 <button type="button" class="pusms-ai-toggle" id="pusmsAiToggle">AI</button>
                 <div class="pusms-ai-panel" id="pusmsAiPanel" hidden>
                     <div class="pusms-ai-head">
-                        <strong>PUSMS Assistant</strong>
+                        <strong>PUSMS AI</strong>
                         <button type="button" id="pusmsAiClose">x</button>
                     </div>
                     <div class="pusms-ai-body" id="pusmsAiBody">
-                        <div class="pusms-ai-msg">Ask me about this page, students, scholarships, reports, email drafts, SMS drafts, or where to find something.</div>
+                        <div class="pusms-ai-msg">Ask me: "where is students", "draft email", "how to send SMS", "go to reports", or "what is this page".</div>
                     </div>
                     <form id="pusmsAiForm" class="pusms-ai-form">
                         <textarea id="pusmsAiInput" placeholder="Ask about PUSMS..." rows="3"></textarea>
@@ -68,38 +122,6 @@ class AdminPanelProvider extends PanelProvider
                 </div>
             </div>
             <style>
-                .pusms-message-bell {
-                    position: fixed;
-                    right: 92px;
-                    bottom: 22px;
-                    z-index: 60;
-                    min-width: 54px;
-                    height: 48px;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    background: #ffffff;
-                    color: #082f63;
-                    border: 1px solid #cbd5e1;
-                    border-radius: 10px;
-                    font-weight: 800;
-                    box-shadow: 0 8px 24px rgba(15, 23, 42, .16);
-                    text-decoration: none;
-                }
-
-                .pusms-message-bell strong {
-                    min-width: 22px;
-                    height: 22px;
-                    border-radius: 999px;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: #dc2626;
-                    color: #ffffff;
-                    font-size: 12px;
-                }
-
                 .pusms-ai-assistant {
                     position: fixed;
                     right: 22px;
@@ -229,6 +251,15 @@ class AdminPanelProvider extends PanelProvider
                             });
                             const json = await response.json();
                             pending.textContent = json.answer || 'I could not find an answer.';
+                            if (json.url) {
+                                const link = document.createElement('a');
+                                link.href = json.url;
+                                link.textContent = 'Open page';
+                                link.style.cssText = 'display:inline-block;margin-top:8px;color:#005eea;font-weight:800;text-decoration:underline;';
+                                pending.appendChild(document.createTextNode('\\n'));
+                                pending.appendChild(link);
+                                if (json.navigate) window.location.href = json.url;
+                            }
                         } catch (error) {
                             pending.textContent = 'The assistant could not respond. Please try again.';
                         }
@@ -603,6 +634,10 @@ class AdminPanelProvider extends PanelProvider
                         </div>
                     HTML
                     : '').$this->assistantMarkup()),
+            )
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_AFTER,
+                fn (): HtmlString => new HtmlString($this->notificationBellMarkup()),
             )
             ->renderHook(
                 PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
