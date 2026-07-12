@@ -117,7 +117,7 @@ class AdminPanelProvider extends PanelProvider
 
         return <<<HTML
             <div class="pusms-ai-assistant" id="pusmsAiAssistant">
-                <div class="pusms-ai-bubble" id="pusmsAiBubble">
+                <div class="pusms-ai-bubble" id="pusmsAiBubble" hidden>
                     <button type="button" class="pusms-ai-tip-close" id="pusmsAiTipClose" aria-label="Hide assistant tip">x</button>
                     <span>Need help? Chat with us!</span>
                 </div>
@@ -160,7 +160,7 @@ class AdminPanelProvider extends PanelProvider
                     padding-inline: 16px;
                     border-radius: 999px;
                     border: 4px solid #ffffff;
-                    background: #0b2c53;
+                    background: #005eea;
                     color: #ffffff;
                     box-shadow: 0 10px 28px rgba(15, 23, 42, .32);
                     display: inline-flex;
@@ -183,7 +183,7 @@ class AdminPanelProvider extends PanelProvider
                     margin-right: 36px;
                     max-width: 250px;
                     border-radius: 9px;
-                    background: #10c98b;
+                    background: #005eea;
                     color: #ffffff;
                     padding: 16px 20px;
                     font-weight: 900;
@@ -200,7 +200,7 @@ class AdminPanelProvider extends PanelProvider
                     height: 0;
                     border-left: 12px solid transparent;
                     border-right: 12px solid transparent;
-                    border-top: 12px solid #10c98b;
+                    border-top: 12px solid #005eea;
                 }
 
                 .pusms-ai-tip-close {
@@ -301,7 +301,6 @@ class AdminPanelProvider extends PanelProvider
                     if (!toggle || !assistant || !panel || !form || toggle.dataset.ready) return;
                     toggle.dataset.ready = '1';
                     const positionKey = 'pusms-ai-position';
-                    const tipKey = 'pusms-ai-tip-hidden';
                     const saved = localStorage.getItem(positionKey);
                     if (saved) {
                         try {
@@ -312,13 +311,26 @@ class AdminPanelProvider extends PanelProvider
                             assistant.style.bottom = 'auto';
                         } catch (error) {}
                     }
-                    if (localStorage.getItem(tipKey) === '1' && bubble) {
-                        bubble.hidden = true;
-                    }
+                    let promptTimer = null;
+                    let hidePromptTimer = null;
+                    const hidePrompt = () => {
+                        if (bubble) bubble.hidden = true;
+                        if (hidePromptTimer) window.clearTimeout(hidePromptTimer);
+                        hidePromptTimer = null;
+                    };
+                    const showPrompt = () => {
+                        if (!bubble || !panel.hidden) return;
+                        bubble.hidden = false;
+                        if (hidePromptTimer) window.clearTimeout(hidePromptTimer);
+                        hidePromptTimer = window.setTimeout(hidePrompt, 5000);
+                    };
+                    const startPromptCycle = () => {
+                        if (promptTimer) window.clearInterval(promptTimer);
+                        promptTimer = window.setInterval(showPrompt, 10000);
+                    };
                     tipClose?.addEventListener('click', (event) => {
                         event.stopPropagation();
-                        if (bubble) bubble.hidden = true;
-                        localStorage.setItem(tipKey, '1');
+                        hidePrompt();
                     });
                     let drag = null;
                     const startDrag = (event) => {
@@ -355,6 +367,9 @@ class AdminPanelProvider extends PanelProvider
                         localStorage.setItem(positionKey, JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
                         if (!moved && event.target.closest('#pusmsAiToggle')) {
                             panel.hidden = !panel.hidden;
+                            if (!panel.hidden) {
+                                hidePrompt();
+                            }
                         }
                     };
                     [toggle, bubble].filter(Boolean).forEach((handle) => {
@@ -363,7 +378,10 @@ class AdminPanelProvider extends PanelProvider
                     assistant.addEventListener('pointermove', moveDrag);
                     assistant.addEventListener('pointerup', endDrag);
                     assistant.addEventListener('pointercancel', endDrag);
-                    close?.addEventListener('click', () => panel.hidden = true);
+                    close?.addEventListener('click', () => {
+                        panel.hidden = true;
+                    });
+                    startPromptCycle();
                     const add = (text, cls = '') => {
                         const div = document.createElement('div');
                         div.className = 'pusms-ai-msg ' + cls;
