@@ -20,6 +20,8 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentIcon;
+use Filament\View\PanelsIconAlias;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Support\HtmlString;
@@ -34,6 +36,15 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        FilamentIcon::register([
+            PanelsIconAlias::SIDEBAR_COLLAPSE_BUTTON => 'heroicon-o-list-bullet',
+            PanelsIconAlias::SIDEBAR_COLLAPSE_BUTTON_RTL => 'heroicon-o-list-bullet',
+            PanelsIconAlias::SIDEBAR_EXPAND_BUTTON => 'heroicon-o-list-bullet',
+            PanelsIconAlias::SIDEBAR_EXPAND_BUTTON_RTL => 'heroicon-o-list-bullet',
+            PanelsIconAlias::TOPBAR_OPEN_SIDEBAR_BUTTON => 'heroicon-o-list-bullet',
+            PanelsIconAlias::TOPBAR_CLOSE_SIDEBAR_BUTTON => 'heroicon-o-list-bullet',
+        ]);
+
         return $panel
             ->default()
             ->id('admin')
@@ -173,8 +184,8 @@ class AdminPanelProvider extends PanelProvider
                         }
 
                         .pusms-topbar-brand img {
-                            width: 68px;
-                            height: 68px;
+                            width: 86px;
+                            height: 72px;
                             object-fit: contain;
                             flex: none;
                         }
@@ -198,25 +209,89 @@ class AdminPanelProvider extends PanelProvider
                             max-width: none !important;
                         }
 
-                        .fi-page > header::after {
-                            content: "";
-                            display: block;
-                            width: min(420px, 80vw);
-                            height: 150px;
-                            margin: .5rem auto 1rem;
-                            background: url('/images/pentvars-3d.png') center / contain no-repeat;
+                        .fi-header {
+                            align-items: flex-start !important;
                         }
 
-                        .fi-sidebar.is-collapsed .fi-sidebar-nav,
-                        .fi-sidebar[aria-expanded="false"] .fi-sidebar-nav {
+                        .fi-header-actions-ctn {
+                            flex: 1 1 auto !important;
+                            min-width: min(430px, 45vw);
+                            justify-content: center !important;
+                            align-items: flex-start !important;
+                        }
+
+                        .pusms-page-title-logo {
+                            width: min(430px, 45vw);
+                            height: 150px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-top: -.5rem;
+                        }
+
+                        .pusms-page-title-logo img {
+                            width: 100%;
+                            height: 100%;
+                            object-fit: contain;
+                        }
+
+                        .fi-topbar-open-sidebar-btn svg,
+                        .fi-topbar-close-sidebar-btn svg,
+                        .fi-topbar-open-collapse-sidebar-btn svg,
+                        .fi-topbar-close-collapse-sidebar-btn svg {
+                            width: 2rem !important;
+                            height: 2rem !important;
+                            color: #020617 !important;
+                        }
+
+                        html.dark .fi-topbar-open-sidebar-btn svg,
+                        html.dark .fi-topbar-close-sidebar-btn svg,
+                        html.dark .fi-topbar-open-collapse-sidebar-btn svg,
+                        html.dark .fi-topbar-close-collapse-sidebar-btn svg {
+                            color: #f8fafc !important;
+                        }
+
+                        .fi-sidebar:not(.fi-sidebar-open) {
+                            width: 7rem !important;
+                        }
+
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav {
+                            width: 7rem !important;
+                            padding-inline: .45rem !important;
+                        }
+
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav-groups {
                             display: grid !important;
                             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                            gap: .35rem !important;
-                            padding-inline: .35rem !important;
+                            gap: .45rem !important;
+                            align-items: start !important;
                         }
 
-                        .fi-sidebar.is-collapsed .fi-sidebar-item-label,
-                        .fi-sidebar[aria-expanded="false"] .fi-sidebar-item-label {
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group,
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-items {
+                            display: contents !important;
+                        }
+
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item,
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-dropdown-trigger-btn {
+                            width: 2.65rem !important;
+                            height: 2.65rem !important;
+                            min-width: 2.65rem !important;
+                        }
+
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item a,
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-dropdown-trigger-btn {
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            padding: 0 !important;
+                            border-radius: .5rem !important;
+                        }
+
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-item-label,
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-label,
+                        .fi-sidebar:not(.fi-sidebar-open) .fi-sidebar-group-btn,
+                        .fi-sidebar:not(.fi-sidebar-open) .pusms-sidebar-wordmark {
                             display: none !important;
                         }
 
@@ -255,8 +330,8 @@ class AdminPanelProvider extends PanelProvider
                             }
 
                             .pusms-topbar-brand img {
-                                width: 42px;
-                                height: 42px;
+                                width: 54px;
+                                height: 48px;
                             }
 
                             .pusms-topbar-brand .pusms-full-name {
@@ -274,6 +349,18 @@ class AdminPanelProvider extends PanelProvider
                                 min-width: 160px !important;
                                 max-width: 220px !important;
                             }
+
+                            .fi-header-actions-ctn {
+                                min-width: 0;
+                                width: 100%;
+                                justify-content: center !important;
+                                margin-top: .75rem;
+                            }
+
+                            .pusms-page-title-logo {
+                                width: min(100%, 360px);
+                                height: 108px;
+                            }
                         }
                     </style>
                 HTML),
@@ -285,6 +372,14 @@ class AdminPanelProvider extends PanelProvider
                         <img src="/images/pentvars-3d.png" alt="Pentecost University">
                         <span class="pusms-full-name">Pentecost University Scholarship Management System (PUSMS)</span>
                         <span class="pusms-short-name">PUSMS</span>
+                    </div>
+                HTML),
+            )
+            ->renderHook(
+                PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
+                fn (): HtmlString => new HtmlString(<<<'HTML'
+                    <div class="pusms-page-title-logo" aria-hidden="true">
+                        <img src="/images/pentvars-3d.png" alt="">
                     </div>
                 HTML),
             )
