@@ -127,18 +127,18 @@ PROMPT;
         $isSponsor = str_contains($lower, 'sponsor') || str_contains($lower, 'contact person') || str_contains($lower, 'donor');
         $name = $isSponsor ? '{{contact_person}}' : '{{student_name}}';
         $subject = $isSms ? 'SMS Message' : $this->subjectFor($lower);
-        $purpose = $this->cleanPurpose($prompt);
+        $body = $this->bodyFor($prompt, $lower, $name, $isSponsor, $isSms);
 
         if ($isSms) {
             return [
                 'subject' => $subject,
-                'body' => "Dear {$name}, {$purpose} Kindly contact the Scholarship Office if you need clarification. Thank you.",
+                'body' => $body,
             ];
         }
 
         return [
             'subject' => $subject,
-            'body' => "Dear {$name},\n\n{$purpose}\n\nKindly take note and respond to the Scholarship Office if you need clarification.\n\nRegards,\nScholarship Office\nPentecost University",
+            'body' => $body,
         ];
     }
 
@@ -154,6 +154,76 @@ PROMPT;
             str_contains($prompt, 'interview') => 'Scholarship Interview Notice',
             default => 'Pentecost University Scholarship Update',
         };
+    }
+
+    private function bodyFor(string $prompt, string $lower, string $name, bool $isSponsor, bool $isSms): string
+    {
+        if ($isSms) {
+            return $this->smsBodyFor($prompt, $lower, $name);
+        }
+
+        $closing = $isSponsor
+            ? "Thank you for your continued support.\n\nRegards,\nScholarship Office\nPentecost University"
+            : "Please treat this notice as important.\n\nThank you.\n\nPentecost University Scholarship Committee";
+
+        if (str_contains($lower, 'meeting') || str_contains($lower, 'vc') || str_contains($lower, 'vice chancellor')) {
+            return "Dear {$name},\n\nYou are kindly informed that there will be an important meeting with the Vice-Chancellor and the Scholarship Committee.\n\nThe meeting is scheduled as follows:\n\nDate: [Insert Date]\nTime: [Insert Time]\nVenue: [Insert Venue]\n\nAll selected scholarship recipients are expected to be present and punctual, as important information concerning scholarship support, expectations, and student welfare will be discussed.\n\n{$closing}";
+        }
+
+        if (str_contains($lower, 'award') || str_contains($lower, 'congrat')) {
+            return "Dear {$name},\n\nCongratulations. We are pleased to inform you that your scholarship award has been approved for the current academic year.\n\nKindly visit the Scholarship Office for any required confirmation and further guidance on the terms of the award.\n\n{$closing}";
+        }
+
+        if (str_contains($lower, 'renew')) {
+            return "Dear {$name},\n\nYou are kindly reminded to complete your scholarship renewal process for the current academic year.\n\nPlease submit all required documents before the stated deadline so that your renewal can be reviewed on time.\n\n{$closing}";
+        }
+
+        if (str_contains($lower, 'result') || str_contains($lower, 'gpa') || str_contains($lower, 'academic performance')) {
+            return "Dear {$name},\n\nThe Scholarship Office is reviewing beneficiaries' academic performance records. Kindly ensure that your latest result or GPA information has been submitted and correctly updated.\n\nStudents whose records are incomplete should contact the Scholarship Office for assistance.\n\n{$closing}";
+        }
+
+        if (str_contains($lower, 'document') || str_contains($lower, 'submit')) {
+            return "Dear {$name},\n\nYou are kindly requested to submit the required scholarship documents to the Scholarship Office.\n\nRequired documents: [Insert Documents]\nDeadline: [Insert Deadline]\nSubmission point: Scholarship Office\n\nFailure to submit the required documents on time may delay the processing of your scholarship record.\n\n{$closing}";
+        }
+
+        if (str_contains($lower, 'deadline')) {
+            return "Dear {$name},\n\nThis is a reminder that the deadline for the scholarship requirement is approaching.\n\nDeadline: [Insert Deadline]\nRequirement: [Insert Requirement]\n\nKindly complete the required action before the deadline to avoid delays or further follow-up.\n\n{$closing}";
+        }
+
+        if (str_contains($lower, 'interview')) {
+            return "Dear {$name},\n\nYou are kindly invited to attend a scholarship interview with the Scholarship Committee.\n\nDate: [Insert Date]\nTime: [Insert Time]\nVenue: [Insert Venue]\n\nPlease be punctual and come along with any required documents.\n\n{$closing}";
+        }
+
+        $purpose = $this->cleanPurpose($prompt);
+
+        return "Dear {$name},\n\n{$purpose}\n\nKindly take note and respond to the Scholarship Office if you need clarification.\n\nRegards,\nScholarship Office\nPentecost University";
+    }
+
+    private function smsBodyFor(string $prompt, string $lower, string $name): string
+    {
+        if (str_contains($lower, 'meeting') || str_contains($lower, 'vc') || str_contains($lower, 'vice chancellor')) {
+            return "Dear {$name}, you are invited to an important scholarship meeting with the Vice-Chancellor and Scholarship Committee. Date: [Insert Date]. Time: [Insert Time]. Venue: [Insert Venue]. Please be punctual.";
+        }
+
+        if (str_contains($lower, 'award') || str_contains($lower, 'congrat')) {
+            return "Dear {$name}, congratulations. Your scholarship award has been approved. Please contact the Scholarship Office for confirmation and further guidance.";
+        }
+
+        if (str_contains($lower, 'renew')) {
+            return "Dear {$name}, kindly complete your scholarship renewal process and submit all required documents before [Insert Deadline].";
+        }
+
+        if (str_contains($lower, 'result') || str_contains($lower, 'gpa')) {
+            return "Dear {$name}, kindly ensure your latest result or GPA record has been submitted to the Scholarship Office for review.";
+        }
+
+        if (str_contains($lower, 'document') || str_contains($lower, 'submit')) {
+            return "Dear {$name}, kindly submit the required scholarship documents by [Insert Deadline] at the Scholarship Office.";
+        }
+
+        $purpose = $this->cleanPurpose($prompt);
+
+        return "Dear {$name}, {$purpose} Kindly contact the Scholarship Office if you need clarification. Thank you.";
     }
 
     private function cleanPurpose(string $prompt): string

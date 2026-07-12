@@ -100,6 +100,154 @@ class AdminPanelProvider extends PanelProvider
         HTML;
     }
 
+    private function preLoginLoaderMarkup(): string
+    {
+        if (! request()->is('admin/login') || auth()->check()) {
+            return '';
+        }
+
+        return <<<'HTML'
+            <div class="pusms-login-loader" id="pusmsLoginLoader" aria-label="Loading Pentecost University Scholarship System">
+                <div class="pusms-login-loader-inner">
+                    <div class="pusms-loader-stage" aria-hidden="true">
+                        <div class="pusms-loader-ring"></div>
+                        <span class="pusms-loader-spark one"></span>
+                        <span class="pusms-loader-spark two"></span>
+                        <span class="pusms-loader-spark three"></span>
+                        <img src="/images/pentvars-3d.png" alt="">
+                    </div>
+                    <h1>Scholarship In Pentecost University</h1>
+                    <div class="pusms-loader-bar"><span></span></div>
+                </div>
+            </div>
+            <style>
+                .pusms-login-loader {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 99999;
+                    display: grid;
+                    place-items: center;
+                    background: #ffffff;
+                    color: #020617;
+                    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                    transition: opacity .45s ease, visibility .45s ease;
+                }
+
+                .pusms-login-loader.is-done {
+                    opacity: 0;
+                    visibility: hidden;
+                }
+
+                .pusms-login-loader-inner {
+                    width: min(520px, calc(100vw - 48px));
+                    display: grid;
+                    justify-items: center;
+                    gap: 22px;
+                    text-align: center;
+                }
+
+                .pusms-loader-stage {
+                    width: 190px;
+                    height: 190px;
+                    position: relative;
+                    display: grid;
+                    place-items: center;
+                }
+
+                .pusms-loader-stage img {
+                    width: 150px;
+                    filter: drop-shadow(0 12px 22px rgba(15, 23, 42, .16));
+                    animation: pusmsAssemble 2.8s cubic-bezier(.16, 1, .3, 1) forwards;
+                    transform-origin: center;
+                }
+
+                .pusms-loader-ring {
+                    position: absolute;
+                    inset: 8px;
+                    border: 2px solid #dbe3ee;
+                    border-radius: 28px;
+                    animation: pusmsRingFade 2.8s ease forwards;
+                }
+
+                .pusms-loader-spark {
+                    position: absolute;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 999px;
+                    background: #f3b51b;
+                    opacity: 0;
+                    animation: pusmsSpark 2.8s ease forwards;
+                }
+
+                .pusms-loader-spark.one { top: 16px; left: 44px; }
+                .pusms-loader-spark.two { right: 30px; top: 58px; animation-delay: .25s; }
+                .pusms-loader-spark.three { left: 28px; bottom: 44px; animation-delay: .45s; }
+
+                .pusms-login-loader h1 {
+                    margin: 0;
+                    color: #053a82;
+                    font-size: clamp(1.35rem, 4vw, 2rem);
+                    line-height: 1.15;
+                    font-weight: 900;
+                    opacity: 0;
+                    transform: translateY(10px);
+                    animation: pusmsTitleIn .75s ease 2.2s forwards;
+                }
+
+                .pusms-loader-bar {
+                    width: min(320px, 80vw);
+                    height: 8px;
+                    overflow: hidden;
+                    border: 1px solid #dbe3ee;
+                    border-radius: 999px;
+                    background: #f8fafc;
+                    opacity: 0;
+                    animation: pusmsTitleIn .4s ease 2.45s forwards;
+                }
+
+                .pusms-loader-bar span {
+                    display: block;
+                    height: 100%;
+                    width: 0;
+                    border-radius: inherit;
+                    background: linear-gradient(90deg, #053a82, #f3b51b);
+                    animation: pusmsLoadBar 1.2s ease 2.45s forwards;
+                }
+
+                @keyframes pusmsAssemble {
+                    0% { opacity: 0; transform: translateY(42px) scale(.62) rotate(-7deg); clip-path: inset(76% 24% 0 24%); }
+                    40% { opacity: 1; transform: translateY(10px) scale(.82) rotate(0deg); clip-path: inset(38% 12% 0 12%); }
+                    100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); clip-path: inset(0 0 0 0); }
+                }
+
+                @keyframes pusmsRingFade {
+                    0% { opacity: 0; transform: scale(.72); }
+                    50% { opacity: 1; }
+                    100% { opacity: 0; transform: scale(1.08); }
+                }
+
+                @keyframes pusmsSpark {
+                    0%, 24% { opacity: 0; transform: scale(.2); }
+                    36% { opacity: 1; transform: scale(1); }
+                    100% { opacity: 0; transform: scale(.4) translateY(-18px); }
+                }
+
+                @keyframes pusmsTitleIn {
+                    to { opacity: 1; transform: translateY(0); }
+                }
+
+                @keyframes pusmsLoadBar {
+                    to { width: 100%; }
+                }
+            </style>
+            <script>
+                window.setTimeout(() => {
+                    document.getElementById('pusmsLoginLoader')?.classList.add('is-done');
+                }, 3900);
+            </script>
+        HTML;
+    }
+
     private function assistantMarkup(): string
     {
         if (! request()->is([
@@ -965,6 +1113,10 @@ class AdminPanelProvider extends PanelProvider
                         <span class="pusms-short-name">PUSMS</span>
                     </div>
                 HTML),
+            )
+            ->renderHook(
+                PanelsRenderHook::BODY_START,
+                fn (): HtmlString => new HtmlString($this->preLoginLoaderMarkup()),
             )
             ->renderHook(
                 PanelsRenderHook::TOPBAR_AFTER,
