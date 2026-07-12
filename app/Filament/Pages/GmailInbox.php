@@ -32,6 +32,11 @@ class GmailInbox extends Page
 
     public ?array $selectedMessage = null;
 
+    /**
+     * @var array<int, string>
+     */
+    public array $selectedMessageIds = [];
+
     public static function canAccess(): bool
     {
         return Auth::user()?->can('send email') ?? false;
@@ -59,6 +64,7 @@ class GmailInbox extends Page
 
         try {
             $this->inbox = $gmail->inboxPreview($account) + ['error' => null];
+            $this->selectedMessageIds = [];
         } catch (\Throwable $exception) {
             $this->inbox = ['count' => 0, 'messages' => [], 'needs_reconnect' => true, 'error' => $exception->getMessage()];
 
@@ -68,6 +74,20 @@ class GmailInbox extends Page
                 ->warning()
                 ->send();
         }
+    }
+
+    public function selectAllVisible(): void
+    {
+        $this->selectedMessageIds = collect($this->inbox['messages'] ?? [])
+            ->pluck('id')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedMessageIds = [];
     }
 
     public function selectMessage(string $messageId, GmailOAuthService $gmail): void
@@ -96,6 +116,72 @@ class GmailInbox extends Page
             Notification::make()
                 ->title('Could not open inbox message')
                 ->body('Reconnect Gmail and try again.')
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function deleteSelected(GmailOAuthService $gmail): void
+    {
+        $this->trashMessages($gmail, $this->selectedMessageIds, 'selected');
+    }
+
+    public function deleteAllVisible(GmailOAuthService $gmail): void
+    {
+        $messageIds = collect($this->inbox['messages'] ?? [])
+            ->pluck('id')
+            ->filter()
+            ->values()
+            ->all();
+
+        $this->trashMessages($gmail, $messageIds, 'visible scholarship inbox');
+    }
+
+    /**
+     * @param  array<int, string>  $messageIds
+     */
+    private function trashMessages(GmailOAuthService $gmail, array $messageIds, string $label): void
+    {
+        if ($messageIds === []) {
+            Notification::make()
+                ->title('No inbox messages selected')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $account = GmailAccount::query()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at')
+            ->latest('last_used_at')
+            ->latest()
+            ->first();
+
+        if (! $account) {
+            Notification::make()
+                ->title('Connect Gmail first')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $count = $gmail->trashInboxMessages($account, $messageIds);
+            $this->selectedMessageIds = [];
+            $this->selectedMessage = null;
+            $this->refreshInbox($gmail);
+
+            Notification::make()
+                ->title('Inbox messages moved to Gmail Trash')
+                ->body("Deleted {$count} {$label} message(s).")
+                ->success()
+                ->send();
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->title('Could not delete inbox messages')
+                ->body('Reconnect Gmail and approve inbox management permission.')
                 ->danger()
                 ->send();
         }

@@ -25,6 +25,7 @@ class GmailOAuthService
             'profile',
             'https://www.googleapis.com/auth/gmail.send',
             'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.modify',
         ];
     }
 
@@ -191,7 +192,7 @@ class GmailOAuthService
      */
     public function inboxPreview(GmailAccount $account, int $limit = 15): array
     {
-        if (! in_array('https://www.googleapis.com/auth/gmail.readonly', $account->scopes ?? [], true)) {
+        if (! $this->hasScope($account, 'https://www.googleapis.com/auth/gmail.readonly')) {
             return ['count' => 0, 'messages' => [], 'needs_reconnect' => true];
         }
 
@@ -245,7 +246,7 @@ class GmailOAuthService
      */
     public function inboxMessage(GmailAccount $account, string $messageId): array
     {
-        if (! in_array('https://www.googleapis.com/auth/gmail.readonly', $account->scopes ?? [], true)) {
+        if (! $this->hasScope($account, 'https://www.googleapis.com/auth/gmail.readonly')) {
             throw new NotificationConfigurationException(
                 'Reconnect Gmail and approve inbox reading before opening messages.',
                 'gmail_read_scope_missing',
@@ -325,6 +326,42 @@ class GmailOAuthService
         $decoded = base64_decode(strtr($value, '-_', '+/'), true);
 
         return $decoded === false ? '' : $decoded;
+    }
+
+    /**
+     * @param  array<int, string>  $messageIds
+     */
+    public function trashInboxMessages(GmailAccount $account, array $messageIds): int
+    {
+        if (! $this->hasScope($account, 'https://www.googleapis.com/auth/gmail.modify')) {
+            throw new NotificationConfigurationException(
+                'Reconnect Gmail and approve inbox management permission before deleting inbox messages.',
+                'gmail_modify_scope_missing',
+            );
+        }
+
+        $token = $this->refreshAccessToken($account);
+        $trashed = 0;
+
+        foreach (array_unique(array_filter($messageIds)) as $messageId) {
+            Http::withToken($token)
+                ->timeout(30)
+                ->post("https://gmail.googleapis.com/gmail/v1/users/me/messages/{$messageId}/trash")
+                ->throw();
+
+            $trashed++;
+        }
+
+        return $trashed;
+    }
+
+    private function hasScope(GmailAccount $account, string $scope): bool
+    {
+        $scopes = $account->scopes ?? [];
+
+        return in_array($scope, $scopes, true)
+            || ($scope === 'https://www.googleapis.com/auth/gmail.readonly'
+                && in_array('https://www.googleapis.com/auth/gmail.modify', $scopes, true));
     }
 
     public function disconnect(GmailAccount $account): void
