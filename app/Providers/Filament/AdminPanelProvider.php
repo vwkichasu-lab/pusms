@@ -150,7 +150,6 @@ class AdminPanelProvider extends PanelProvider
                     display: grid;
                     justify-items: end;
                     gap: 8px;
-                    touch-action: none;
                     user-select: none;
                 }
 
@@ -166,11 +165,7 @@ class AdminPanelProvider extends PanelProvider
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    cursor: grab;
-                }
-
-                .pusms-ai-toggle:active {
-                    cursor: grabbing;
+                    cursor: pointer;
                 }
 
                 .pusms-ai-toggle svg {
@@ -188,7 +183,7 @@ class AdminPanelProvider extends PanelProvider
                     padding: 16px 20px;
                     font-weight: 900;
                     box-shadow: 0 12px 30px rgba(15, 23, 42, .2);
-                    cursor: grab;
+                    cursor: pointer;
                 }
 
                 .pusms-ai-bubble::after {
@@ -300,41 +295,18 @@ class AdminPanelProvider extends PanelProvider
                     const body = document.getElementById('pusmsAiBody');
                     if (!toggle || !assistant || !panel || !form || toggle.dataset.ready) return;
                     toggle.dataset.ready = '1';
-                    const positionKey = 'pusms-ai-position';
-                    const saved = localStorage.getItem(positionKey);
-                    if (saved) {
-                        try {
-                            const pos = JSON.parse(saved);
-                            const left = Math.max(8, Math.min(window.innerWidth - assistant.offsetWidth - 8, Number(pos.left) || 8));
-                            const top = Math.max(8, Math.min(window.innerHeight - assistant.offsetHeight - 8, Number(pos.top) || 8));
-                            assistant.style.left = left + 'px';
-                            assistant.style.top = top + 'px';
-                            assistant.style.right = 'auto';
-                            assistant.style.bottom = 'auto';
-                        } catch (error) {}
-                    }
-                    let promptTimer = null;
-                    let hidePromptTimer = null;
                     const hidePrompt = () => {
                         if (bubble) bubble.hidden = true;
-                        if (hidePromptTimer) window.clearTimeout(hidePromptTimer);
-                        hidePromptTimer = null;
                     };
                     const showPrompt = () => {
                         if (!bubble || !panel.hidden) return;
                         bubble.hidden = false;
-                        if (hidePromptTimer) window.clearTimeout(hidePromptTimer);
-                        hidePromptTimer = window.setTimeout(hidePrompt, 5000);
                     };
-                    const startPromptCycle = () => {
-                        if (promptTimer) window.clearInterval(promptTimer);
-                        promptTimer = window.setInterval(showPrompt, 10000);
-                    };
+                    window.setTimeout(showPrompt, 60000);
                     tipClose?.addEventListener('click', (event) => {
                         event.stopPropagation();
                         hidePrompt();
                     });
-                    let drag = null;
                     const openPanel = () => {
                         assistant.style.zIndex = '9999';
                         panel.hidden = false;
@@ -344,44 +316,6 @@ class AdminPanelProvider extends PanelProvider
                     const togglePanel = () => {
                         panel.hidden ? openPanel() : panel.hidden = true;
                     };
-                    const startDrag = (event) => {
-                        if (event.target === tipClose) return;
-                        if (event.target.closest('#pusmsAiPanel')) return;
-                        const rect = assistant.getBoundingClientRect();
-                        drag = {
-                            pointerId: event.pointerId,
-                            startX: event.clientX,
-                            startY: event.clientY,
-                            left: rect.left,
-                            top: rect.top,
-                            moved: false,
-                        };
-                        window.addEventListener('pointermove', moveDrag);
-                        window.addEventListener('pointerup', endDrag, { once: true });
-                    };
-                    const moveDrag = (event) => {
-                        if (!drag || drag.pointerId !== event.pointerId) return;
-                        const dx = event.clientX - drag.startX;
-                        const dy = event.clientY - drag.startY;
-                        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
-                        const rect = assistant.getBoundingClientRect();
-                        const nextLeft = Math.max(8, Math.min(window.innerWidth - rect.width - 8, drag.left + dx));
-                        const nextTop = Math.max(8, Math.min(window.innerHeight - rect.height - 8, drag.top + dy));
-                        assistant.style.left = nextLeft + 'px';
-                        assistant.style.top = nextTop + 'px';
-                        assistant.style.right = 'auto';
-                        assistant.style.bottom = 'auto';
-                    };
-                    const endDrag = (event) => {
-                        if (!drag || drag.pointerId !== event.pointerId) return;
-                        drag = null;
-                        window.removeEventListener('pointermove', moveDrag);
-                        const rect = assistant.getBoundingClientRect();
-                        localStorage.setItem(positionKey, JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
-                    };
-                    [toggle, bubble].filter(Boolean).forEach((handle) => {
-                        handle.addEventListener('pointerdown', startDrag);
-                    });
                     toggle.addEventListener('click', (event) => {
                         event.preventDefault();
                         togglePanel();
@@ -391,11 +325,9 @@ class AdminPanelProvider extends PanelProvider
                         event.preventDefault();
                         openPanel();
                     });
-                    window.addEventListener('pointercancel', endDrag);
                     close?.addEventListener('click', () => {
                         panel.hidden = true;
                     });
-                    startPromptCycle();
                     const add = (text, cls = '') => {
                         const div = document.createElement('div');
                         div.className = 'pusms-ai-msg ' + cls;
@@ -462,8 +394,15 @@ class AdminPanelProvider extends PanelProvider
                     display: flex;
                     justify-content: flex-end;
                     margin-top: 1rem;
+                    margin-bottom: 5.5rem;
                     padding-top: .75rem;
                     border-top: 1px solid #e2e8f0;
+                }
+
+                @media (min-width: 768px) {
+                    .pusms-clear-draft-row {
+                        padding-right: 6rem;
+                    }
                 }
 
                 .pusms-clear-draft {
