@@ -305,8 +305,10 @@ class AdminPanelProvider extends PanelProvider
                     if (saved) {
                         try {
                             const pos = JSON.parse(saved);
-                            assistant.style.left = pos.left + 'px';
-                            assistant.style.top = pos.top + 'px';
+                            const left = Math.max(8, Math.min(window.innerWidth - assistant.offsetWidth - 8, Number(pos.left) || 8));
+                            const top = Math.max(8, Math.min(window.innerHeight - assistant.offsetHeight - 8, Number(pos.top) || 8));
+                            assistant.style.left = left + 'px';
+                            assistant.style.top = top + 'px';
                             assistant.style.right = 'auto';
                             assistant.style.bottom = 'auto';
                         } catch (error) {}
@@ -333,8 +335,8 @@ class AdminPanelProvider extends PanelProvider
                         hidePrompt();
                     });
                     let drag = null;
-                    let suppressNextClick = false;
                     const openPanel = () => {
+                        assistant.style.zIndex = '9999';
                         panel.hidden = false;
                         hidePrompt();
                         input?.focus();
@@ -354,7 +356,8 @@ class AdminPanelProvider extends PanelProvider
                             top: rect.top,
                             moved: false,
                         };
-                        assistant.setPointerCapture?.(event.pointerId);
+                        window.addEventListener('pointermove', moveDrag);
+                        window.addEventListener('pointerup', endDrag, { once: true });
                     };
                     const moveDrag = (event) => {
                         if (!drag || drag.pointerId !== event.pointerId) return;
@@ -371,32 +374,24 @@ class AdminPanelProvider extends PanelProvider
                     };
                     const endDrag = (event) => {
                         if (!drag || drag.pointerId !== event.pointerId) return;
-                        const moved = drag.moved;
                         drag = null;
+                        window.removeEventListener('pointermove', moveDrag);
                         const rect = assistant.getBoundingClientRect();
                         localStorage.setItem(positionKey, JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) }));
-                        suppressNextClick = moved;
-                        if (moved) {
-                            window.setTimeout(() => suppressNextClick = false, 150);
-                        }
                     };
                     [toggle, bubble].filter(Boolean).forEach((handle) => {
                         handle.addEventListener('pointerdown', startDrag);
                     });
                     toggle.addEventListener('click', (event) => {
                         event.preventDefault();
-                        if (suppressNextClick) return;
                         togglePanel();
                     });
                     bubble?.addEventListener('click', (event) => {
                         if (event.target === tipClose) return;
                         event.preventDefault();
-                        if (suppressNextClick) return;
                         openPanel();
                     });
-                    assistant.addEventListener('pointermove', moveDrag);
-                    assistant.addEventListener('pointerup', endDrag);
-                    assistant.addEventListener('pointercancel', endDrag);
+                    window.addEventListener('pointercancel', endDrag);
                     close?.addEventListener('click', () => {
                         panel.hidden = true;
                     });
