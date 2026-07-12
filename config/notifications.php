@@ -9,8 +9,8 @@ return [
     ],
 
     'sms' => [
-        'provider' => env('PUSMS_SMS_PROVIDER', 'hubtel'),
-        'default_country_code' => env('PUSMS_SMS_DEFAULT_COUNTRY_CODE'),
+        'provider' => env('PUSMS_SMS_PROVIDER', 'arkesel'),
+        'default_country_code' => env('PUSMS_SMS_DEFAULT_COUNTRY_CODE', '233'),
         'max_length' => (int) env('PUSMS_SMS_MAX_LENGTH', 918),
         'timeout' => (int) env('PUSMS_SMS_TIMEOUT', 30),
     ],

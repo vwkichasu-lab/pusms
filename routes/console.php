@@ -32,18 +32,24 @@ Artisan::command('pusms:test-email {to} {--subject=Pentecost University test ema
     return 0;
 })->purpose('Send a development-only test email through the configured notification provider');
 
-Artisan::command('pusms:test-sms {to}', function (SmsSender $sms): int {
-    if (app()->environment('production')) {
-        $this->error('This command is disabled in production.');
+Artisan::command('pusms:test-sms {to} {--message=PUSMS SMS delivery test.} {--force-production : Allow a real production SMS test}', function (SmsSender $sms): int {
+    if (app()->environment('production') && ! $this->option('force-production')) {
+        $this->error('This command is disabled in production unless --force-production is provided.');
 
         return 1;
     }
 
-    $result = $sms->send(new SmsMessage(
-        to: $this->argument('to'),
-        message: 'PUSMS development SMS test.',
-        idempotencyKey: 'dev-test-sms:'.now()->timestamp,
-    ));
+    try {
+        $result = $sms->send(new SmsMessage(
+            to: $this->argument('to'),
+            message: $this->option('message'),
+            idempotencyKey: 'dev-test-sms:'.now()->timestamp,
+        ));
+    } catch (Throwable $exception) {
+        $this->error('SMS test failed: '.$exception->getMessage());
+
+        return 1;
+    }
 
     $this->info("SMS test {$result->status} through {$result->provider}.");
 

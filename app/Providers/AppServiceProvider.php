@@ -27,9 +27,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(SmsSender::class, function ($app): SmsSender {
-            return match (config('notifications.sms.provider')) {
+            return match (strtolower((string) config('notifications.sms.provider'))) {
                 'fake' => $app->make(FakeSmsSender::class),
                 'arkesel' => $app->make(ArkeselSmsSender::class),
+                'hubtel' => $app->make(HubtelSmsSender::class),
                 default => $app->make(HubtelSmsSender::class),
             };
         });

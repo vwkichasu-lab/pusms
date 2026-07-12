@@ -55,7 +55,7 @@ class SendSms extends Page
             ->statePath('data')
             ->components([
                 Section::make('SMS Message')
-                    ->description('SMS is sent through Hubtel to selected students and/or sponsors.')
+                    ->description(fn (): string => 'SMS is sent through '.str(config('notifications.sms.provider', 'arkesel'))->headline().' to selected students and/or sponsors.')
                     ->schema([
                         Select::make('recipient_group')
                             ->label('Send To')
