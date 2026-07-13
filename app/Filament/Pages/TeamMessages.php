@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\InternalMessage;
+use App\Models\SystemSetting;
 use App\Models\User;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -30,7 +31,7 @@ class TeamMessages extends Page
 
     protected string $view = 'filament.pages.team-messages';
 
-    public string $selectedConversation = 'all';
+    public string $selectedConversation = '';
 
     public string $messageText = '';
 
@@ -38,16 +39,34 @@ class TeamMessages extends Page
 
     public string $search = '';
 
+    public string $newChatSearch = '';
+
     public function mount(): void
     {
+        $this->selectedConversation = (string) ($this->contacts->first()['id'] ?? '');
         $this->markSelectedAsRead();
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('Super Administrator')) {
+            return true;
+        }
+
+        return self::teamMessagesEnabled();
     }
 
     public static function getNavigationBadge(): ?string
     {
         $userId = Auth::id();
 
-        if (! $userId) {
+        if (! $userId || ! self::canAccess()) {
             return null;
         }
 
@@ -76,8 +95,27 @@ class TeamMessages extends Page
         $this->markSelectedAsRead();
     }
 
+    public function startConversation(int $userId): void
+    {
+        if (! User::query()->whereKey($userId)->where('is_active', true)->exists() || $userId === Auth::id()) {
+            Notification::make()->title('Select a valid user')->danger()->send();
+
+            return;
+        }
+
+        $this->selectedConversation = (string) $userId;
+        $this->newChatSearch = '';
+        $this->markSelectedAsRead();
+    }
+
     public function sendMessage(): void
     {
+        if ($this->selectedConversation === '') {
+            Notification::make()->title('Select a user or All Users first')->warning()->send();
+
+            return;
+        }
+
         $this->validate([
             'messageText' => ['required_without:attachment', 'nullable', 'string', 'max:5000'],
             'attachment' => ['nullable', 'file', 'max:10240'],
@@ -93,6 +131,12 @@ class TeamMessages extends Page
         }
 
         if ($this->selectedConversation === 'all') {
+            if (! Auth::user()?->hasRole('Super Administrator')) {
+                Notification::make()->title('Only Super Administrators can message all users')->danger()->send();
+
+                return;
+            }
+
             $groupId = (string) Str::uuid();
             $recipients = User::query()
                 ->whereKeyNot(Auth::id())
@@ -156,6 +200,10 @@ class TeamMessages extends Page
 
     public function clearChat(): void
     {
+        if ($this->selectedConversation === '') {
+            return;
+        }
+
         if ($this->selectedConversation === 'all') {
             InternalMessage::query()
                 ->whereNotNull('broadcast_group_id')
@@ -187,34 +235,98 @@ class TeamMessages extends Page
 
     public function getContactsProperty(): Collection
     {
-        $users = User::query()
-            ->whereKeyNot(Auth::id())
-            ->where('is_active', true)
-            ->when($this->search, fn (Builder $query, string $search): Builder => $query->where('name', 'like', "%{$search}%"))
-            ->orderBy('name')
-            ->get();
+        $contactIds = InternalMessage::query()
+            ->whereNull('broadcast_group_id')
+            ->where(function (Builder $query): void {
+                $query->where(function (Builder $sent): void {
+                    $sent->where('sender_id', Auth::id())
+                        ->whereNull('deleted_by_sender_at');
+                })->orWhere(function (Builder $received): void {
+                    $received->where('recipient_id', Auth::id())
+                        ->whereNull('deleted_by_recipient_at');
+                });
+            })
+            ->get(['sender_id', 'recipient_id'])
+            ->flatMap(fn (InternalMessage $message): array => [
+                (int) $message->sender_id,
+                (int) $message->recipient_id,
+            ])
+            ->reject(fn (int $id): bool => $id === Auth::id())
+            ->unique()
+            ->values();
 
-        return collect([
-            [
-                'id' => 'all',
-                'name' => 'All Users',
-                'subtitle' => 'Broadcast to every active user',
-                'initials' => 'ALL',
-                'unread' => $this->broadcastUnreadCount(),
-                'last' => $this->lastBroadcastMessage(),
-            ],
-        ])->merge($users->map(fn (User $user): array => [
+        $users = User::query()
+            ->whereKey($contactIds)
+            ->when($this->search, function (Builder $query, string $search): Builder {
+                return $query->where(function (Builder $inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->get()
+            ->sortByDesc(fn (User $user): int => $this->lastMessageWithUser($user->id)?->getKey() ?? 0)
+            ->values();
+
+        $contacts = $users->map(fn (User $user): array => [
             'id' => (string) $user->id,
             'name' => $user->name,
-            'subtitle' => $user->email,
+            'subtitle' => $user->username ? '@'.$user->username : $user->email,
+            'avatar' => $user->profile_photo_url,
             'initials' => $this->initials($user->name),
             'unread' => $this->unreadCountForUser($user->id),
             'last' => $this->lastMessageWithUser($user->id),
-        ]));
+        ]);
+
+        if (Auth::user()?->hasRole('Super Administrator') || $this->lastBroadcastMessage()) {
+            $contacts->prepend([
+                'id' => 'all',
+                'name' => 'All Users',
+                'subtitle' => 'Broadcast to every active user',
+                'avatar' => null,
+                'initials' => 'ALL',
+                'unread' => $this->broadcastUnreadCount(),
+                'last' => $this->lastBroadcastMessage(),
+            ]);
+        }
+
+        return $contacts->values();
+    }
+
+    public function getNewChatResultsProperty(): Collection
+    {
+        if (filled($this->newChatSearch) === false) {
+            return collect();
+        }
+
+        $search = trim($this->newChatSearch);
+
+        return User::query()
+            ->whereKeyNot(Auth::id())
+            ->where('is_active', true)
+            ->where(function (Builder $query) use ($search): void {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->orderBy('name')
+            ->limit(8)
+            ->get()
+            ->map(fn (User $user): array => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'subtitle' => $user->username ? '@'.$user->username : $user->email,
+                'avatar' => $user->profile_photo_url,
+                'initials' => $this->initials($user->name),
+            ]);
     }
 
     public function getConversationMessagesProperty(): Collection
     {
+        if ($this->selectedConversation === '') {
+            return collect();
+        }
+
         if ($this->selectedConversation === 'all') {
             return $this->broadcastMessages();
         }
@@ -224,9 +336,31 @@ class TeamMessages extends Page
 
     public function getSelectedContactProperty(): array
     {
-        return $this->contacts->firstWhere('id', $this->selectedConversation)
-            ?? $this->contacts->first()
-            ?? ['id' => 'all', 'name' => 'All Users', 'subtitle' => 'Broadcast chat', 'initials' => 'ALL', 'unread' => 0, 'last' => null];
+        if ($this->selectedConversation !== '') {
+            $existingContact = $this->contacts->firstWhere('id', $this->selectedConversation);
+
+            if ($existingContact) {
+                return $existingContact;
+            }
+
+            if ($this->selectedConversation !== 'all') {
+                $user = User::query()->find((int) $this->selectedConversation);
+
+                if ($user) {
+                    return [
+                        'id' => (string) $user->id,
+                        'name' => $user->name,
+                        'subtitle' => $user->username ? '@'.$user->username : $user->email,
+                        'avatar' => $user->profile_photo_url,
+                        'initials' => $this->initials($user->name),
+                        'unread' => 0,
+                        'last' => null,
+                    ];
+                }
+            }
+        }
+
+        return ['id' => '', 'name' => 'Select a chat', 'subtitle' => 'Search a username to start messaging', 'avatar' => null, 'initials' => ''];
     }
 
     private function createMessage(int $recipientId, string $body, ?string $attachmentPath, ?string $attachmentName, ?string $broadcastGroupId = null): void
@@ -344,6 +478,10 @@ class TeamMessages extends Page
             return;
         }
 
+        if ($this->selectedConversation === '') {
+            return;
+        }
+
         if ($this->selectedConversation === 'all') {
             InternalMessage::query()
                 ->whereNotNull('broadcast_group_id')
@@ -379,5 +517,12 @@ class TeamMessages extends Page
         }
 
         return Storage::disk('public')->url($message->attachment_path);
+    }
+
+    private static function teamMessagesEnabled(): bool
+    {
+        $setting = SystemSetting::query()->where('key', 'allow_team_messages')->first();
+
+        return $setting ? (bool) $setting->value : false;
     }
 }

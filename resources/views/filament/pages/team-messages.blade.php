@@ -4,7 +4,7 @@
             height: calc(100vh - 190px);
             min-height: 620px;
             display: grid;
-            grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+            grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             overflow: hidden;
@@ -44,6 +44,32 @@
             background: #fff;
         }
 
+        .pusms-new-chat {
+            margin-top: 10px;
+            border: 1px solid #d9e2ef;
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .pusms-new-chat-row {
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #eef2f7;
+            background: #fff;
+            display: grid;
+            grid-template-columns: 36px minmax(0, 1fr);
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .pusms-new-chat-row:hover {
+            background: #eaf3ff;
+        }
+
         .pusms-chat-contacts {
             overflow-y: auto;
         }
@@ -78,6 +104,14 @@
             color: #fff;
             font-weight: 900;
             font-size: 12px;
+            overflow: hidden;
+            flex: 0 0 auto;
+        }
+
+        .pusms-chat-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .pusms-chat-contact-name {
@@ -262,6 +296,16 @@
             font-weight: 900;
         }
 
+        .pusms-chat-empty {
+            height: 100%;
+            display: grid;
+            place-items: center;
+            color: #64748b;
+            font-weight: 800;
+            text-align: center;
+            padding: 24px;
+        }
+
         @media (max-width: 900px) {
             .pusms-chat-shell {
                 grid-template-columns: 1fr;
@@ -283,18 +327,46 @@
     <div class="pusms-chat-shell" wire:poll.3s="refreshChat">
         <aside class="pusms-chat-list">
             <div class="pusms-chat-list-head">
-                <h3>Your Chats</h3>
-                <input class="pusms-chat-search" type="search" wire:model.live.debounce.400ms="search" placeholder="Search users">
+                <h3>Chats</h3>
+                <input class="pusms-chat-search" type="search" wire:model.live.debounce.400ms="newChatSearch" placeholder="Enter username, name, or email to start chat">
+
+                @if ($this->newChatResults->isNotEmpty())
+                    <div class="pusms-new-chat">
+                        @foreach ($this->newChatResults as $user)
+                            <button type="button" wire:click="startConversation({{ $user['id'] }})" class="pusms-new-chat-row">
+                                <span class="pusms-chat-avatar" style="width:36px;height:36px;">
+                                    @if ($user['avatar'])
+                                        <img src="{{ $user['avatar'] }}" alt="{{ $user['name'] }}">
+                                    @else
+                                        {{ $user['initials'] }}
+                                    @endif
+                                </span>
+                                <span style="min-width:0;">
+                                    <span class="pusms-chat-contact-name">{{ $user['name'] }}</span>
+                                    <span class="pusms-chat-contact-last">{{ $user['subtitle'] }}</span>
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+
+                <input class="pusms-chat-search" type="search" wire:model.live.debounce.400ms="search" placeholder="Search existing chats">
             </div>
 
             <div class="pusms-chat-contacts">
-                @foreach ($this->contacts as $contact)
+                @forelse ($this->contacts as $contact)
                     <button
                         type="button"
                         wire:click="selectConversation('{{ $contact['id'] }}')"
                         class="pusms-chat-contact {{ $this->selectedConversation === $contact['id'] ? 'is-active' : '' }}"
                     >
-                        <span class="pusms-chat-avatar">{{ $contact['initials'] }}</span>
+                        <span class="pusms-chat-avatar">
+                            @if ($contact['avatar'])
+                                <img src="{{ $contact['avatar'] }}" alt="{{ $contact['name'] }}">
+                            @else
+                                {{ $contact['initials'] }}
+                            @endif
+                        </span>
                         <span style="min-width:0;">
                             <span class="pusms-chat-contact-name">{{ $contact['name'] }}</span>
                             <span class="pusms-chat-contact-last">
@@ -305,14 +377,24 @@
                             <span class="pusms-chat-badge">{{ $contact['unread'] }}</span>
                         @endif
                     </button>
-                @endforeach
+                @empty
+                    <div style="padding:18px; color:#64748b; font-weight:800;">
+                        No chats yet. Enter a username above to start one.
+                    </div>
+                @endforelse
             </div>
         </aside>
 
         <section class="pusms-chat-main">
             <header class="pusms-chat-head">
                 <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-                    <span class="pusms-chat-avatar">{{ $this->selectedContact['initials'] }}</span>
+                    <span class="pusms-chat-avatar">
+                        @if ($this->selectedContact['avatar'])
+                            <img src="{{ $this->selectedContact['avatar'] }}" alt="{{ $this->selectedContact['name'] }}">
+                        @else
+                            {{ $this->selectedContact['initials'] }}
+                        @endif
+                    </span>
                     <div style="min-width:0;">
                         <h3>{{ $this->selectedContact['name'] }}</h3>
                         <div class="pusms-chat-status">{{ $this->selectedContact['subtitle'] }}</div>
@@ -326,7 +408,12 @@
             <main class="pusms-chat-thread" id="pusmsChatThread">
                 <div class="pusms-chat-day">Live chat updates every few seconds</div>
 
-                @forelse ($this->conversationMessages as $message)
+                @if ($this->selectedConversation === '')
+                    <div class="pusms-chat-empty">
+                        Enter a username, name, or email on the left to start chatting. Existing chats will appear there after messages are sent or received.
+                    </div>
+                @else
+                    @forelse ($this->conversationMessages as $message)
                     @php($isMine = $message->sender_id === auth()->id())
                     <article class="pusms-chat-message {{ $isMine ? 'is-mine' : '' }}">
                         <div class="pusms-chat-bubble">
@@ -350,11 +437,12 @@
                             <button type="button" wire:click="deleteMessage({{ $message->id }})" wire:confirm="Delete this message from your view?" class="pusms-chat-delete">Delete</button>
                         </div>
                     </article>
-                @empty
-                    <div style="height:100%; display:grid; place-items:center; color:#64748b; font-weight:800;">
-                        No messages in this chat yet.
-                    </div>
-                @endforelse
+                    @empty
+                        <div class="pusms-chat-empty">
+                            No messages in this chat yet. Type below to send the first message.
+                        </div>
+                    @endforelse
+                @endif
             </main>
 
             <form wire:submit="sendMessage" class="pusms-chat-compose">

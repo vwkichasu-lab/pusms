@@ -45,6 +45,7 @@ class GeneralSettings extends Page
             'office_phone' => $this->setting('office_phone', ''),
             'default_academic_year' => $this->setting('default_academic_year', '2025/2026'),
             'allow_gmail_sending' => (bool) $this->setting('allow_gmail_sending', true),
+            'allow_team_messages' => (bool) $this->setting('allow_team_messages', false),
         ]);
     }
 
@@ -82,6 +83,10 @@ class GeneralSettings extends Page
                         Toggle::make('allow_gmail_sending')
                             ->label('Allow Gmail Sending')
                             ->default(true),
+                        Toggle::make('allow_team_messages')
+                            ->label('Allow Team Messages For Other Users')
+                            ->helperText('When disabled, only Super Administrators can open Team Messages.')
+                            ->default(false),
                     ])
                     ->columns(2),
             ]);
