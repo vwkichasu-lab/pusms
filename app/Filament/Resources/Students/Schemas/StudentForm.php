@@ -8,6 +8,7 @@ use App\Models\GhanaRegion;
 use App\Models\Programme;
 use App\Models\ScholarshipProgramme;
 use App\Models\AcademicYear;
+use App\Models\StudentScholarship;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -200,6 +201,11 @@ class StudentForm
                             ->label('Academic Year')
                             ->options(fn (): array => AcademicYear::query()->orderByDesc('start_date')->pluck('name', 'id')->all())
                             ->searchable(),
+                        Select::make('scholarship_award.scholarship_stage')
+                            ->label('Scholarship Stage')
+                            ->options(StudentScholarship::stageOptions())
+                            ->default(StudentScholarship::STAGE_NEW_AWARD)
+                            ->helperText('Choose whether this is a new award or an existing beneficiary record.'),
                         TextInput::make('scholarship_award.coverage_percentage')
                             ->label('Scholarship Percentage')
                             ->numeric()

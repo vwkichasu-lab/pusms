@@ -9,6 +9,7 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use App\Models\StudentScholarship;
 
 class StudentScholarshipsTable
 {
@@ -28,6 +29,11 @@ class StudentScholarshipsTable
                 TextColumn::make('covers_stipend')->label('Stipend')->badge()->formatStateUsing(fn ($state): string => $state ? 'Included' : 'Excluded')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('amount_awarded')->money('GHS')->sortable()->toggleable(),
                 TextColumn::make('status')->badge()->sortable(),
+                TextColumn::make('scholarship_stage')
+                    ->label('Stage')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state): string => StudentScholarship::stageOptions()[$state] ?? '-')
+                    ->sortable(),
                 TextColumn::make('award_date')->date()->sortable()->toggleable(),
                 TextColumn::make('start_date')->label('Start')->date()->sortable()->toggleable(),
                 TextColumn::make('end_date')->label('End / Terminated')->date()->sortable()->toggleable(),
@@ -47,6 +53,9 @@ class StudentScholarshipsTable
                         'terminated' => 'Terminated',
                         'completed' => 'Completed',
                     ]),
+                SelectFilter::make('scholarship_stage')
+                    ->label('Scholarship Stage')
+                    ->options(StudentScholarship::stageOptions()),
             ])
             ->recordActions([
                 Action::make('letter')

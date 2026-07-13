@@ -36,6 +36,7 @@ class CreateStudent extends CreateRecord
             'covers_accommodation' => (bool) ($this->scholarshipAward['covers_accommodation'] ?? false),
             'covers_stipend' => false,
             'status' => 'active',
+            'scholarship_stage' => $this->scholarshipAward['scholarship_stage'] ?? StudentScholarship::STAGE_NEW_AWARD,
             'remarks' => $this->scholarshipAward['remarks'] ?? null,
         ]);
     }

@@ -22,15 +22,35 @@ use Illuminate\Support\Carbon;
     'coverage_notes',
     'amount_awarded',
     'status',
+    'scholarship_stage',
     'award_reference',
     'approved_by',
     'remarks',
 ])]
 class StudentScholarship extends Model
 {
+    public const STAGE_NEW_AWARD = 'new_award';
+
+    public const STAGE_EXISTING_BENEFICIARY = 'existing_beneficiary';
+
+    /**
+     * @return array<string, string>
+     */
+    public static function stageOptions(): array
+    {
+        return [
+            self::STAGE_NEW_AWARD => 'Newly Awarded',
+            self::STAGE_EXISTING_BENEFICIARY => 'Existing Beneficiary',
+        ];
+    }
+
     protected static function booted(): void
     {
         static::creating(function (StudentScholarship $award): void {
+            if (! filled($award->scholarship_stage)) {
+                $award->scholarship_stage = self::STAGE_NEW_AWARD;
+            }
+
             if (! filled($award->award_reference)) {
                 $award->award_reference = self::generateAwardReference($award);
             }
@@ -57,6 +77,11 @@ class StudentScholarship extends Model
         } while (self::query()->where('award_reference', $reference)->exists());
 
         return $reference;
+    }
+
+    public function getScholarshipStageLabelAttribute(): string
+    {
+        return self::stageOptions()[$this->scholarship_stage] ?? ucfirst(str_replace('_', ' ', (string) $this->scholarship_stage));
     }
 
     protected function casts(): array

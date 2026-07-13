@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentScholarships\Schemas;
 
 use App\Models\Student;
 use App\Models\ScholarshipProgramme;
+use App\Models\StudentScholarship;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -87,6 +88,12 @@ class StudentScholarshipForm
                                 'completed' => 'Completed',
                             ])
                             ->default('pending'),
+                        Select::make('scholarship_stage')
+                            ->label('Scholarship Stage')
+                            ->required()
+                            ->options(StudentScholarship::stageOptions())
+                            ->default(StudentScholarship::STAGE_NEW_AWARD)
+                            ->helperText('Use Newly Awarded for students just granted scholarship, or Existing Beneficiary for students already on it.'),
                         TextInput::make('award_reference')
                             ->label('Award Reference')
                             ->placeholder('Auto-generated after saving')

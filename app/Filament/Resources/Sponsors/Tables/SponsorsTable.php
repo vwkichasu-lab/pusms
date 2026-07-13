@@ -13,6 +13,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use App\Models\StudentScholarship;
+use Illuminate\Database\Eloquent\Builder;
 
 class SponsorsTable
 {
@@ -27,9 +29,29 @@ class SponsorsTable
                 TextColumn::make('phone')->searchable()->toggleable(),
                 TextColumn::make('status')->badge()->sortable(),
                 TextColumn::make('scholarship_programmes_count')->counts('scholarshipProgrammes')->label('Programmes')->sortable(),
+                TextColumn::make('new_awards_count')
+                    ->label('Newly Awarded')
+                    ->getStateUsing(fn ($record): int => $record->scholarshipProgrammes()
+                        ->withCount(['studentScholarships as stage_count' => fn (Builder $query): Builder => $query->where('scholarship_stage', StudentScholarship::STAGE_NEW_AWARD)])
+                        ->get()
+                        ->sum('stage_count'))
+                    ->sortable(false),
+                TextColumn::make('existing_beneficiaries_count')
+                    ->label('Existing Beneficiaries')
+                    ->getStateUsing(fn ($record): int => $record->scholarshipProgrammes()
+                        ->withCount(['studentScholarships as stage_count' => fn (Builder $query): Builder => $query->where('scholarship_stage', StudentScholarship::STAGE_EXISTING_BENEFICIARY)])
+                        ->get()
+                        ->sum('stage_count'))
+                    ->sortable(false),
             ])
             ->filters([
                 SelectFilter::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive']),
+                SelectFilter::make('scholarship_stage')
+                    ->label('Scholarship Stage')
+                    ->options(StudentScholarship::stageOptions())
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->whereHas('scholarshipProgrammes.studentScholarships', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_stage', $data['value']))
+                        : $query),
                 TrashedFilter::make(),
             ])
             ->recordActions([

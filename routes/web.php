@@ -31,6 +31,9 @@ Route::middleware(['web', 'auth'])->group(function (): void {
     Route::get('/admin/reports/students/export/{format}', [ReportController::class, 'exportStudents'])
         ->whereIn('format', ['csv', 'xlsx', 'pdf'])
         ->name('reports.students.export');
+    Route::get('/admin/reports/sponsors/export/{format}', [ReportController::class, 'exportSponsors'])
+        ->whereIn('format', ['csv', 'xlsx'])
+        ->name('reports.sponsors.export');
     Route::get('/admin/global-student-search/results', GlobalSearchController::class)->name('global.student-search');
     Route::get('/admin/students/{student}/scholarship-history', [ScholarshipHistoryController::class, 'show'])
         ->name('students.scholarship-history');

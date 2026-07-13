@@ -17,7 +17,9 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use App\Models\AcademicYear;
 use App\Models\Level;
+use App\Models\StudentScholarship;
 use App\Models\StudentLevelProgression;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
 class StudentsTable
@@ -40,6 +42,15 @@ class StudentsTable
                 TextColumn::make('programme.department.school.name')->label('School')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('level.name')->label('Level')->sortable(),
                 TextColumn::make('student_status')->badge()->sortable(),
+                TextColumn::make('scholarship_stage')
+                    ->label('Scholarship Stage')
+                    ->badge()
+                    ->getStateUsing(function ($record): ?string {
+                        $stage = $record->scholarships()->latest()->value('scholarship_stage');
+
+                        return $stage ? (StudentScholarship::stageOptions()[$stage] ?? $stage) : null;
+                    })
+                    ->toggleable(),
                 TextColumn::make('student_batch')->label('Batch')->searchable()->toggleable(),
                 TextColumn::make('alumni_status')->badge()->sortable()->toggleable(),
                 TextColumn::make('alumni_badge')->searchable()->toggleable(isToggledHiddenByDefault: true),
@@ -61,6 +72,12 @@ class StudentsTable
                         'not_alumni' => 'Not Alumni',
                         'alumni' => 'Alumni',
                     ]),
+                SelectFilter::make('scholarship_stage')
+                    ->label('Scholarship Stage')
+                    ->options(StudentScholarship::stageOptions())
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->whereHas('scholarships', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_stage', $data['value']))
+                        : $query),
             ])
             ->recordActions([
                 ViewAction::make()

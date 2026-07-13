@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Student;
+use App\Models\StudentScholarship;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -28,6 +29,9 @@ class StudentReportService
             ->when($filters['scholarship_programme_id'] ?? null, function (Builder $query, $id): Builder {
                 return $query->whereHas('scholarships', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_programme_id', $id));
             })
+            ->when($filters['scholarship_stage'] ?? null, function (Builder $query, $stage): Builder {
+                return $query->whereHas('scholarships', fn (Builder $scholarship): Builder => $scholarship->where('scholarship_stage', $stage));
+            })
             ->when($filters['q'] ?? null, function (Builder $query, string $search): Builder {
                 return $query->where(function (Builder $nested) use ($search): void {
                     $nested
@@ -46,7 +50,7 @@ class StudentReportService
      */
     public function rows(array $filters = []): Collection
     {
-        return $this->query($filters)->orderBy('last_name')->get()->map(function (Student $student): array {
+        return $this->query($filters)->orderBy('last_name')->get()->map(function (Student $student) use ($filters): array {
             $search = strtolower((string) ($filters['q'] ?? ''));
             $currentScholarship = $student->scholarships->sortByDesc('created_at')->first();
             $latestResult = $student->results->first();
@@ -74,6 +78,9 @@ class StudentReportService
                 'accommodation' => $currentScholarship?->covers_accommodation ? 'Included' : ($currentScholarship ? 'Excluded' : null),
                 'scholarship_year' => $currentScholarship?->academicYear?->name,
                 'scholarship_status' => $currentScholarship?->status,
+                'scholarship_stage' => $currentScholarship?->scholarship_stage
+                    ? (StudentScholarship::stageOptions()[$currentScholarship->scholarship_stage] ?? $currentScholarship->scholarship_stage)
+                    : null,
                 'gpa' => $latestResult?->gpa,
                 'cgpa' => $latestResult?->cgpa,
                 'performance_status' => $latestResult?->performance_status,
