@@ -33,6 +33,11 @@ class TeamMessages extends Page
 
     public ?int $openMessageId = null;
 
+    public function mount(): void
+    {
+        $this->form->fill();
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $userId = Auth::id();
@@ -71,7 +76,11 @@ class TeamMessages extends Page
                                 ->pluck('name', 'id')
                                 ->all())
                             ->required()
-                            ->searchable(),
+                            ->exists('users', 'id')
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->dehydrated(),
                         TextInput::make('subject')
                             ->required()
                             ->maxLength(255),
@@ -96,10 +105,20 @@ class TeamMessages extends Page
     public function send(): void
     {
         $state = $this->form->getState();
+        $recipientId = (int) ($state['recipient_id'] ?? 0);
+
+        if ($recipientId <= 0) {
+            Notification::make()
+                ->title('Select who should receive the message')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         InternalMessage::query()->create([
             'sender_id' => Auth::id(),
-            'recipient_id' => $state['recipient_id'],
+            'recipient_id' => $recipientId,
             'subject' => $state['subject'],
             'body' => $state['body'],
             'attachment_path' => $state['attachment_path'] ?? null,
