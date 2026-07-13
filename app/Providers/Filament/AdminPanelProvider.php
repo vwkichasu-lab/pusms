@@ -16,6 +16,7 @@ use App\Filament\Widgets\StudentsByLevelChart;
 use App\Filament\Widgets\StudentsByProgrammeChart;
 use App\Filament\Widgets\StudentsByRegionChart;
 use App\Filament\Widgets\StudentsBySchoolChart;
+use App\Http\Middleware\LogoutInactiveUser;
 use App\Models\InternalMessage;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -969,6 +970,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                LogoutInactiveUser::class,
             ]);
     }
 }
