@@ -950,6 +950,30 @@ class AdminPanelProvider extends PanelProvider
                     : '').$this->assistantMarkup().$this->formDraftMarkup()),
             )
             ->renderHook(
+                PanelsRenderHook::FOOTER,
+                fn (): HtmlString => new HtmlString(<<<'HTML'
+                    <footer class="pusms-developer-footer">Developed By: Kichasu Wugajah Victor</footer>
+                    <style>
+                        .pusms-developer-footer {
+                            width: 100%;
+                            padding: 10px 16px 14px;
+                            text-align: center;
+                            color: #526b88;
+                            font-size: 13px;
+                            font-weight: 800;
+                            border-top: 1px solid #d9e2ef;
+                            background: #ffffff;
+                        }
+
+                        html.dark .pusms-developer-footer {
+                            color: #cbd5e1;
+                            border-top-color: #30363d;
+                            background: #0d1117;
+                        }
+                    </style>
+                HTML),
+            )
+            ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_AFTER,
                 fn (): HtmlString => new HtmlString($this->notificationBellMarkup()),
             )

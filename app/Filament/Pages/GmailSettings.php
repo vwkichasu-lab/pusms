@@ -48,8 +48,8 @@ class GmailSettings extends Page
                         Select::make('gmail_account_id')
                             ->label('Gmail Account')
                             ->options(fn (): array => GmailAccount::query()
-                                ->where('user_id', Auth::id())
                                 ->where('status', 'connected')
+                                ->whereNull('revoked_at')
                                 ->orderBy('email')
                                 ->pluck('email', 'id')
                                 ->all())
@@ -73,8 +73,8 @@ class GmailSettings extends Page
         $state = $this->form->getState();
 
         $account = GmailAccount::query()
-            ->where('user_id', Auth::id())
             ->where('status', 'connected')
+            ->whereNull('revoked_at')
             ->find($state['gmail_account_id'] ?? $this->defaultGmailAccountId());
 
         if (! $account) {
@@ -108,7 +108,6 @@ class GmailSettings extends Page
     public function disconnect(int $gmailAccountId, GmailOAuthService $gmail): void
     {
         $account = GmailAccount::query()
-            ->where('user_id', Auth::id())
             ->find($gmailAccountId);
 
         if (! $account) {
@@ -131,7 +130,6 @@ class GmailSettings extends Page
     public function getGmailAccountsProperty(): array
     {
         return GmailAccount::query()
-            ->where('user_id', Auth::id())
             ->latest('connected_at')
             ->latest()
             ->get()
@@ -141,8 +139,8 @@ class GmailSettings extends Page
     private function defaultGmailAccountId(): ?int
     {
         return GmailAccount::query()
-            ->where('user_id', Auth::id())
             ->where('status', 'connected')
+            ->whereNull('revoked_at')
             ->orderBy('email')
             ->value('id');
     }
