@@ -17,7 +17,8 @@ use App\Filament\Widgets\StudentsByProgrammeChart;
 use App\Filament\Widgets\StudentsByRegionChart;
 use App\Filament\Widgets\StudentsBySchoolChart;
 use App\Http\Middleware\LogoutInactiveUser;
-use App\Models\InternalMessage;
+use App\Models\GmailAccount;
+use App\Services\GmailOAuthService;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,6 +31,7 @@ use Filament\Support\Facades\FilamentIcon;
 use Filament\View\PanelsIconAlias;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\HtmlString;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -42,16 +44,14 @@ class AdminPanelProvider extends PanelProvider
 {
     private function notificationBellMarkup(): string
     {
-        $unread = auth()->check()
-            ? InternalMessage::query()->where('recipient_id', auth()->id())->whereNull('read_at')->count()
-            : 0;
+        $inboxCount = $this->gmailInboxCount();
 
         return <<<HTML
-            <a href="/admin/team-messages" class="pusms-header-bell" title="Team messages">
+            <a href="/admin/gmail-inbox" class="pusms-header-bell" title="Scholarship Gmail inbox">
                 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5-6.71V3a2 2 0 1 0-4 0v1.29A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/>
                 </svg>
-                <strong>{$unread}</strong>
+                <strong>{$inboxCount}</strong>
             </a>
             <style>
                 .pusms-header-bell {
@@ -99,6 +99,36 @@ class AdminPanelProvider extends PanelProvider
                 }
             </style>
         HTML;
+    }
+
+    private function gmailInboxCount(): int
+    {
+        if (! auth()->check() || ! auth()->user()?->can('send email')) {
+            return 0;
+        }
+
+        $account = GmailAccount::query()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at')
+            ->latest('last_used_at')
+            ->latest()
+            ->first();
+
+        if (! $account) {
+            return 0;
+        }
+
+        return Cache::remember(
+            "pusms:gmail-inbox-count:{$account->id}",
+            now()->addMinutes(2),
+            function () use ($account): int {
+                try {
+                    return (int) (app(GmailOAuthService::class)->inboxPreview($account, 1)['count'] ?? 0);
+                } catch (\Throwable) {
+                    return 0;
+                }
+            },
+        );
     }
 
     private function preLoginLoaderMarkup(): string

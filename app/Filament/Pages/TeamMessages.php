@@ -33,6 +33,27 @@ class TeamMessages extends Page
 
     public ?int $openMessageId = null;
 
+    public static function getNavigationBadge(): ?string
+    {
+        $userId = Auth::id();
+
+        if (! $userId) {
+            return null;
+        }
+
+        $count = InternalMessage::query()
+            ->where('recipient_id', $userId)
+            ->whereNull('read_at')
+            ->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'danger';
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
