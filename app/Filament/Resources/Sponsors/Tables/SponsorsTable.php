@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Sponsors\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteAction;
@@ -55,13 +56,14 @@ class SponsorsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->requiresConfirmation(),
                     RestoreBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                 ]),

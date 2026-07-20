@@ -8,6 +8,7 @@ use App\Filament\Resources\ResultImports\Pages\ListResultImports;
 use App\Filament\Resources\ResultImports\Schemas\ResultImportForm;
 use App\Filament\Resources\ResultImports\Tables\ResultImportsTable;
 use App\Models\ResultImport;
+use App\Support\Filament\RequiresSuperAdministrator;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class ResultImportResource extends Resource
 {
+    use RequiresSuperAdministrator;
+
     protected static ?string $model = ResultImport::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

@@ -8,6 +8,7 @@ use App\Filament\Resources\StudentImports\Pages\ListStudentImports;
 use App\Filament\Resources\StudentImports\Schemas\StudentImportForm;
 use App\Filament\Resources\StudentImports\Tables\StudentImportsTable;
 use App\Models\StudentImport;
+use App\Support\Filament\RequiresSuperAdministrator;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -17,6 +18,8 @@ use UnitEnum;
 
 class StudentImportResource extends Resource
 {
+    use RequiresSuperAdministrator;
+
     protected static ?string $model = StudentImport::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentArrowUp;

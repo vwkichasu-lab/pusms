@@ -546,7 +546,11 @@ class AdminPanelProvider extends PanelProvider
                         button.className = 'pusms-clear-draft';
                         button.dataset.pusmsClearDraft = '1';
                         button.textContent = 'Clear saved form';
-                        button.addEventListener('click', () => clearFormDraft(form));
+                        button.addEventListener('click', () => {
+                            if (window.confirm('Clear the saved form values?')) {
+                                clearFormDraft(form);
+                            }
+                        });
 
                         row.appendChild(button);
                         form.appendChild(row);
@@ -574,6 +578,44 @@ class AdminPanelProvider extends PanelProvider
                     boot();
                     document.addEventListener('livewire:navigated', boot);
                     window.setInterval(bindDraftSaver, 1500);
+                })();
+            </script>
+        HTML;
+    }
+
+    private function formConfirmationMarkup(): string
+    {
+        return <<<'HTML'
+            <script>
+                (() => {
+                    const labels = [
+                        'save', 'save changes', 'create', 'submit', 'send', 'send message',
+                        'preview', 'confirm', 'import', 'upload', 'restore', 'reset password',
+                        'login as'
+                    ];
+
+                    const needsConfirmation = (button) => {
+                        const label = (button.innerText || button.getAttribute('aria-label') || '').trim().toLowerCase();
+
+                        return labels.some((text) => label === text || label.includes(text));
+                    };
+
+                    document.addEventListener('click', (event) => {
+                        const button = event.target.closest('button, a[role="button"]');
+
+                        if (!button || button.dataset.pusmsConfirmed === '1' || !needsConfirmation(button)) {
+                            return;
+                        }
+
+                        if (!window.confirm('Please confirm before continuing.')) {
+                            event.preventDefault();
+                            event.stopImmediatePropagation();
+                            return;
+                        }
+
+                        button.dataset.pusmsConfirmed = '1';
+                        window.setTimeout(() => delete button.dataset.pusmsConfirmed, 1500);
+                    }, true);
                 })();
             </script>
         HTML;
@@ -947,7 +989,7 @@ class AdminPanelProvider extends PanelProvider
                             <a href="/admin/impersonation/stop" style="color:#005eea; text-decoration:underline;">Return to Super Admin</a>
                         </div>
                     HTML
-                    : '').$this->assistantMarkup().$this->formDraftMarkup()),
+                    : '').$this->assistantMarkup().$this->formDraftMarkup().$this->formConfirmationMarkup()),
             )
             ->renderHook(
                 PanelsRenderHook::FOOTER,

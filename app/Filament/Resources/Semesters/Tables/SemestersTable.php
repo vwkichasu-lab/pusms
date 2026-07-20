@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Semesters\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -24,11 +25,12 @@ class SemestersTable
                 SelectFilter::make('status')->options(['upcoming' => 'Upcoming', 'current' => 'Current', 'closed' => 'Closed']),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->requiresConfirmation(),
                 ]),
             ]);
     }

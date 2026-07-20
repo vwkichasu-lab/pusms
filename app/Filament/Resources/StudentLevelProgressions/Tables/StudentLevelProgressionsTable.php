@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\StudentLevelProgressions\Tables;
 
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -32,11 +33,12 @@ class StudentLevelProgressionsTable
                 ]),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->requiresConfirmation(),
                 ]),
             ]);
     }

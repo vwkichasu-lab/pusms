@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\ResultImport;
 use App\Services\ResultImportService;
+use App\Support\Filament\RequiresSuperAdministrator;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
@@ -16,6 +17,8 @@ use UnitEnum;
 
 class ImportResults extends Page
 {
+    use RequiresSuperAdministrator;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 
     protected static string|UnitEnum|null $navigationGroup = 'Students';

@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\StudentImports\Tables;
 
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -32,7 +35,13 @@ class StudentImportsTable
                 ]),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()->requiresConfirmation(),
+                ]),
             ]);
     }
 }

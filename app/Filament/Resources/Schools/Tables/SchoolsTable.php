@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Schools\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -36,11 +37,12 @@ class SchoolsTable
                     ->icon('heroicon-m-eye')
                     ->modalHeading(fn ($record): string => $record->name)
                     ->modalContent(fn ($record) => view('filament.modals.faculty-details', ['faculty' => $record->load(['departments.programmes'])])),
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->requiresConfirmation(),
                 ]),
             ]);
     }

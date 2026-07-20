@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Students\Tables;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -90,7 +91,8 @@ class StudentsTable
                     ->icon(Heroicon::OutlinedClipboardDocumentList)
                     ->url(fn ($record): string => route('students.scholarship-history', $record))
                     ->openUrlInNewTab(),
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -127,7 +129,7 @@ class StudentsTable
                                 ]);
                             }
                         }),
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->requiresConfirmation(),
                 ]),
             ]);
     }

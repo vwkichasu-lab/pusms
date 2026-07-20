@@ -4,6 +4,7 @@ namespace App\Filament\Resources\StudentScholarships\Tables;
 
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -64,11 +65,12 @@ class StudentScholarshipsTable
                     ->url(fn ($record): string => route('student-scholarships.letter', $record))
                     ->openUrlInNewTab()
                     ->visible(fn ($record): bool => $record->scholarshipProgramme?->scholarship_type === 'pu_bursary'),
-                EditAction::make(),
+                EditAction::make()->requiresConfirmation(),
+                DeleteAction::make()->requiresConfirmation(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->requiresConfirmation(),
                 ]),
             ]);
     }

@@ -6,6 +6,7 @@ use App\Models\GeneratedScholarshipLetter;
 use BackedEnum;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -26,6 +27,11 @@ class GeneratedLetters extends Page
     protected string $view = 'filament.pages.generated-letters';
 
     public array $data = [];
+
+    /**
+     * @var array<int, int|string>
+     */
+    public array $selectedLetters = [];
 
     public function form(Schema $schema): Schema
     {
@@ -64,5 +70,41 @@ class GeneratedLetters extends Page
             ->limit(200)
             ->get()
             ->all();
+    }
+
+    public function deleteLetter(int $letterId): void
+    {
+        GeneratedScholarshipLetter::query()->whereKey($letterId)->delete();
+        $this->selectedLetters = array_values(array_filter(
+            $this->selectedLetters,
+            fn ($selected): bool => (int) $selected !== $letterId,
+        ));
+
+        Notification::make()
+            ->title('Generated letter deleted')
+            ->success()
+            ->send();
+    }
+
+    public function deleteSelectedLetters(): void
+    {
+        $ids = collect($this->selectedLetters)->map(fn ($id): int => (int) $id)->filter()->unique()->values();
+
+        if ($ids->isEmpty()) {
+            Notification::make()
+                ->title('Select at least one letter to delete.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        GeneratedScholarshipLetter::query()->whereKey($ids)->delete();
+        $this->selectedLetters = [];
+
+        Notification::make()
+            ->title('Selected generated letters deleted')
+            ->success()
+            ->send();
     }
 }

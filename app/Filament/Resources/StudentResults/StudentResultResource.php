@@ -8,6 +8,7 @@ use App\Filament\Resources\StudentResults\Pages\ListStudentResults;
 use App\Filament\Resources\StudentResults\Schemas\StudentResultForm;
 use App\Filament\Resources\StudentResults\Tables\StudentResultsTable;
 use App\Models\StudentResult;
+use App\Support\Filament\RequiresSuperAdministrator;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,6 +19,8 @@ use UnitEnum;
 
 class StudentResultResource extends Resource
 {
+    use RequiresSuperAdministrator;
+
     protected static ?string $model = StudentResult::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
